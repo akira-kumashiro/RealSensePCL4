@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\denki\Documents\2018Kumashiro\RealSensePCL4\CMakeFiles\ffef4edd40f5dc08d9b7cc02d29b6958\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{38BB4AFA-4B0C-3CA6-8783-6CCC889A6DD0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
