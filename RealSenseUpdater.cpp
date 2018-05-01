@@ -77,9 +77,15 @@ RealSenseUpdater::~RealSenseUpdater()
 	wColorIO(wColorIO::PRINT_SUCCESS, L"Exiting\n");
 }
 
+bool RealSenseUpdater::init()
+{
+	sts = ppInit;
+	return true;
+}
+
 bool RealSenseUpdater::run(void)
 {
-	sts = ppInit();
+	//sts = ppInit();
 	if (sts >= Status::PXC_STATUS_NO_ERROR)
 	{
 		while (1)

@@ -59,6 +59,7 @@
 #define GAUSS_EXCLUDE_THRESHOLD 10
 #define CONTOUR_SIZE_THRESHOLD 10
 #define NUM 2
+#define POWER 3
 
 using namespace Intel::RealSense;
 
@@ -73,6 +74,7 @@ public:
 	RealSenseProcessor();
 	~RealSenseProcessor();
 	bool run(void);
+	std::vector<RealSenseUpdater> rsu;
 private:
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
 

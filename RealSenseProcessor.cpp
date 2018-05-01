@@ -1,14 +1,15 @@
 #include "RealSenseProcessor.h"
 
 RealSenseProcessor::RealSenseProcessor() :
-	viewer(new pcl::visualization::PCLVisualizer("3D Viewer"))
+	viewer(new pcl::visualization::PCLVisualizer("3D Viewer")),
+	rsu(std::vector<RealSenseUpdater>(NUM))
 //	hand_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
 //	camera_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
 //	hand_joint_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>)//PCLä÷òAÇÃïœêîÇÃèâä˙âª
 {
 	wColorIO(wColorIO::PRINT_INFO, L"Start\n");
 
-	std::vector<RealSenseUpdater> rsu(NUM);
+	//std::vector<RealSenseUpdater> rsu(NUM);
 
 /*	hand_point_cloud_ptr->width = DEPTH_WIDTH;
 	hand_point_cloud_ptr->height = DEPTH_HEIGHT;
@@ -60,6 +61,8 @@ RealSenseProcessor::~RealSenseProcessor()
 
 	cv::destroyAllWindows();
 
+
+
 	/*if (handAnalyzer == nullptr)
 	{
 		pp->Release();
@@ -81,6 +84,16 @@ RealSenseProcessor::~RealSenseProcessor()
 
 bool RealSenseProcessor::run(void)
 {
+	while (1)
+	{
+		for (int i = 0; i < NUM; i++)
+		{
+			rsu[i].setLaserPower(POWER);
+			if (NUM > 1)
+				rsu[i].setLaserPower(0);
+		}
+	}
+
 	return true;
 /*	sts = ppInit();
 	if (sts >= Status::PXC_STATUS_NO_ERROR)

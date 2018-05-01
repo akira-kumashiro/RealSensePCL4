@@ -72,7 +72,10 @@ public:
 //public:
 	RealSenseUpdater();
 	~RealSenseUpdater();
+	bool init();
 	bool run(void);
+	bool setCamera(int numCam);
+	Status setLaserPower(int num);
 private:
 	//boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
 
@@ -93,8 +96,7 @@ private:
 	bool keyboardCallBackSettings(int key);
 	bool isOutliers(float rawDepthElem, float rawDepthPrevElem);
 	int detC(cv::Mat src);
-	bool setCamera(int numCam);
-	Status setLaserPower(int num);
+	
 
 	Status sts;
 	bool isContinue;
