@@ -79,7 +79,7 @@ RealSenseUpdater::~RealSenseUpdater()
 
 bool RealSenseUpdater::init()
 {
-	sts = ppInit;
+	sts = ppInit();
 	return true;
 }
 
