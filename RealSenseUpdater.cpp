@@ -1,16 +1,14 @@
-#include "RealSenseProcessor.h"
+#include "RealSenseUpdater.h"
 
-RealSenseProcessor::RealSenseProcessor() :
-	viewer(new pcl::visualization::PCLVisualizer("3D Viewer"))
-//	hand_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
-//	camera_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
-//	hand_joint_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>)//PCL関連の変数の初期化
+RealSenseUpdater::RealSenseUpdater() :
+//	viewer(new pcl::visualization::PCLVisualizer("3D Viewer")),
+	hand_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
+	camera_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
+	hand_joint_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>)//PCL関連の変数の初期化
 {
 	wColorIO(wColorIO::PRINT_INFO, L"Start\n");
 
-	std::vector<RealSenseUpdater> rsu(NUM);
-
-/*	hand_point_cloud_ptr->width = DEPTH_WIDTH;
+	hand_point_cloud_ptr->width = DEPTH_WIDTH;
 	hand_point_cloud_ptr->height = DEPTH_HEIGHT;
 
 	camera_point_cloud_ptr->width = DEPTH_WIDTH;
@@ -42,9 +40,9 @@ RealSenseProcessor::RealSenseProcessor() :
 	handImage = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC4);
 	handPoint = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC4);
 	rawDepthDiffImage = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC1);
-	rawDepthDiffImageFilterd = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC3);*/
+	rawDepthDiffImageFilterd = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC3);
 
-	viewer->registerKeyboardCallback(&RealSenseProcessor::keyboardCallback, *this);
+//	viewer->registerKeyboardCallback(&RealSenseUpdater::keyboardCallback, *this);
 
 	isContinue = false;
 	isUserInterrupt = false;
@@ -52,15 +50,15 @@ RealSenseProcessor::RealSenseProcessor() :
 }
 
 
-RealSenseProcessor::~RealSenseProcessor()
+RealSenseUpdater::~RealSenseUpdater()
 {
 	// Releases lock so pipeline can process next frame 
-	//pp->ReleaseFrame();
-	viewer->close();
+	pp->ReleaseFrame();
+	//viewer->close();
 
 	cv::destroyAllWindows();
 
-	/*if (handAnalyzer == nullptr)
+	if (handAnalyzer == nullptr)
 	{
 		pp->Release();
 		pp = nullptr;
@@ -75,24 +73,21 @@ RealSenseProcessor::~RealSenseProcessor()
 	{
 		projection->Release();
 		projection = nullptr;
-	}*/
+	}
 	wColorIO(wColorIO::PRINT_SUCCESS, L"Exiting\n");
 }
 
-bool RealSenseProcessor::run(void)
+bool RealSenseUpdater::run(void)
 {
-	return true;
-/*	sts = ppInit();
+	sts = ppInit();
 	if (sts >= Status::PXC_STATUS_NO_ERROR)
 	{
-		while (!viewer->wasStopped())
+		while (1)
 		{
 			for (int i = 0; i < CLOUD_NUM; i++)
 			{
 				isCloudArrived[i] = false;
 			}
-			// 表示を更新する
-			viewer->spinOnce();
 
 			//Waits until new frame is available and locks it for application processing
 			sts = pp->AcquireFrame(true);
@@ -118,16 +113,16 @@ bool RealSenseProcessor::run(void)
 
 				detC(rawDepthDiffImage.clone());
 
-				
+
 				if (handData)
 				{
 					handData->Update();
 					updateHandImage();
 					hand_point_cloud_ptr = updatePointCloud(true);
 
-					viewer->updatePointCloud(hand_point_cloud_ptr, "handcloud");
+					//viewer->updatePointCloud(hand_point_cloud_ptr, "handcloud");
 
-					viewer->updatePointCloud(hand_joint_cloud_ptr, "handjoint");
+					//viewer->updatePointCloud(hand_joint_cloud_ptr, "handjoint");
 
 					if (pointCloudNum[CLOUD_HAND] != 0)
 						isCloudArrived[CLOUD_HAND] = true;
@@ -144,17 +139,10 @@ bool RealSenseProcessor::run(void)
 
 				camera_point_cloud_ptr = updatePointCloud(false);
 
-				pcl::visualization::PointCloudColorHandlerRGBAField<pcl::PointXYZRGBA> rgba(camera_point_cloud_ptr);
-
-				viewer->updatePointCloud(camera_point_cloud_ptr, rgba, "cameracloud");
-				//viewer->updatePointCloud(camera_point_cloud_ptr,  "cameracloud");
 				if (pointCloudNum[CLOUD_CAMERA] != 0)
 					isCloudArrived[CLOUD_CAMERA] = true;
 
-
 				rawDepthImagePrev = rawDepthImage.clone();
-
-				updateViewerText();
 			}
 
 			// Releases lock so pipeline can process next frame 
@@ -179,10 +167,10 @@ bool RealSenseProcessor::run(void)
 
 			//config->Release();
 
-			if (viewer->wasStopped())
+			/*if (viewer->wasStopped())
 			{
 				wColorIO(wColorIO::PRINT_ERROR, L"PCLViewer has been stoped\n");
-			}
+			}*/
 
 			// ウィンドウが消されても再表示する
 			cv::namedWindow("カメラ");
@@ -206,7 +194,6 @@ bool RealSenseProcessor::run(void)
 		isExit = true;
 	}
 
-	viewer->close();
 	cv::destroyAllWindows();
 	pp->Close();
 
@@ -242,10 +229,10 @@ bool RealSenseProcessor::run(void)
 			break;
 		}
 	}
-	return(isContinue);*/
+	return(isContinue);
 }
 
-bool RealSenseProcessor::keyboardCallBackSettings(int key)
+bool RealSenseUpdater::keyboardCallBackSettings(int key)
 {
 	cv::Mat tmp;
 
@@ -255,7 +242,7 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 	case CV_WAITKEY_CURSORKEY_BOTTOM:num--;	break; // 数字 - 1
 	case CV_WAITKEY_CURSORKEY_RIGHT:hrgn++;	break; // 文字 + 1
 	case CV_WAITKEY_CURSORKEY_LEFT:hrgn--;	break; // 文字 - 1
-/*	case 'r':
+	case 'r':
 		for (int i = 0; i < HandJointData::NUM_OF_JOINT_DST; i++)
 		{
 			wColorIO(wColorIO::PRINT_INFO, L"right hand %d=%lf\n", i, handjointdata[0].jointDistance[i]);
@@ -298,7 +285,7 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 		else
 			morph_elem--;
 		break;
-	case 'z':
+	/*case 'z':
 		if (gSize > 1)
 			gSize -= 2;
 		else
@@ -327,7 +314,7 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 		CreateDirectory((_time + "\\" + makeNameFolder(hrgn) + "-PCLCamera").c_str(), NULL); // PCLCamera画像フォルダ作成
 		CreateDirectory((_time + "\\" + makeNameFolder(hrgn) + "-Depth見る用").c_str(), NULL); // depth見る用画像フォルダ作成
 
-/*		flip(colorImage, tmp, 1); // 反転
+		flip(colorImage, tmp, 1); // 反転
 		cv::imwrite(_time + "\\" + makeNameFolder(hrgn) + "-Color" + "\\" + makeNameFail(hrgn, num) + ".tif", tmp); // color画像保存
 		flip(handImage, tmp, 1); // 反転
 		cv::imwrite(_time + "\\" + makeNameFolder(hrgn) + "-HandImage" + "\\" + makeNameFail(hrgn, num) + ".tif", tmp); // handImage画像保存
@@ -346,12 +333,11 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 		if (isCloudArrived[CLOUD_JOINT])
 			pcl::io::savePCDFileBinary(_time + "\\" + makeNameFolder(hrgn) + "-PCLJoint" + "\\" + makeNameFail(hrgn, num) + ".pcd", *hand_joint_cloud_ptr);
 		tmp = readDepth(_time + "\\" + makeNameFolder(hrgn) + "-Depth" + "\\" + makeNameFail(hrgn, num)) * 0x60 / 0x10000;
-		
-		cv::imshow("保存済み", tmp); // 保存したものの表示*/
+
+		cv::imshow("保存済み", tmp); // 保存したものの表示
 		num++;
 		break;
 	case 'q': // 終了
-		viewer->close();
 		cv::destroyAllWindows();
 		isUserInterrupt = true;
 		return false;
@@ -386,7 +372,7 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 	return true;
 }
 
-/*Status RealSenseProcessor::ppInit(void)
+Status RealSenseUpdater::ppInit(void)
 {
 	//isContinue = false;
 	isExit = false;
@@ -452,10 +438,8 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 		wColorIO(wColorIO::PRINT_SUCCESS, L"Succeeded to pair the hand module with I/O\n");
 	}
 
-
 	// パイプラインを初期化する
 	sts = pp->Init();
-
 
 	if (sts >= PXC_STATUS_NO_ERROR)
 	{
@@ -501,25 +485,17 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 		return sts;
 	}
 
-	viewer->setBackgroundColor(0, 0, 0);
-	initializeViewer("handcloud", hand_point_cloud_ptr);
-	initializeViewer("cameracloud", camera_point_cloud_ptr, 0.1);
-	initializeViewer("handjoint", hand_joint_cloud_ptr, 10);
-	viewer->addCoordinateSystem(0.01);
-	viewer->initCameraParameters();
+	//viewer->setBackgroundColor(0, 0, 0);
+	//initializeViewer("handcloud", hand_point_cloud_ptr);
+	//initializeViewer("cameracloud", camera_point_cloud_ptr, 0.1);
+	//initializeViewer("handjoint", hand_joint_cloud_ptr, 10);
+	//viewer->addCoordinateSystem(0.01);
+	//viewer->initCameraParameters();
 
 	return sts;
 }
 
-void RealSenseProcessor::initializeViewer(const std::string &id, pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &pointCloudPtr, double pointSize)
-{
-	pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> hand_rgb(pointCloudPtr);
-	viewer->addPointCloud<pcl::PointXYZRGBA>(pointCloudPtr, hand_rgb, id);
-	//viewer->addPointCloud(pointCloudPtr, id);
-	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, pointSize, id);
-}
-
-bool RealSenseProcessor::acqireImage(PXCImage* cameraFrame, cv::Mat &mat, PXCImage::PixelFormat pixelFormat)
+bool RealSenseUpdater::acqireImage(PXCImage* cameraFrame, cv::Mat &mat, PXCImage::PixelFormat pixelFormat)
 {
 	PXCImage::ImageData data;
 
@@ -547,7 +523,7 @@ bool RealSenseProcessor::acqireImage(PXCImage* cameraFrame, cv::Mat &mat, PXCIma
 	return true;
 }
 
-bool RealSenseProcessor::updateCameraImage(PXCImage* cameraFrame, bool isDepthImage)
+bool RealSenseUpdater::updateCameraImage(PXCImage* cameraFrame, bool isDepthImage)
 {
 	if (cameraFrame == nullptr)
 	{
@@ -564,7 +540,7 @@ bool RealSenseProcessor::updateCameraImage(PXCImage* cameraFrame, bool isDepthIm
 		if (rawDepthImagePrev.total() < 1)
 			return true;
 
-		cv::GaussianBlur(rawDepthImage, rawDepthImageGauss, cv::Size(gSize, gSize), sigmaG, sigmaG);
+		//cv::GaussianBlur(rawDepthImage, rawDepthImageGauss, cv::Size(gSize, gSize), sigmaG, sigmaG);
 
 		for (int y = 0; y < rawDepthImage.rows; y++)
 		{
@@ -598,7 +574,7 @@ bool RealSenseProcessor::updateCameraImage(PXCImage* cameraFrame, bool isDepthIm
 	return true;
 }
 
-bool RealSenseProcessor::updateHandImage(void)
+bool RealSenseUpdater::updateHandImage(void)
 {
 	PXCImage::ImageData data;
 	pointCloudNum[CLOUD_JOINT] = 0;
@@ -746,7 +722,7 @@ bool RealSenseProcessor::updateHandImage(void)
 	}
 }
 
-bool RealSenseProcessor::isOutliers(float rawDepthElem, float rawDepthPrevElem)
+bool RealSenseUpdater::isOutliers(float rawDepthElem, float rawDepthPrevElem)
 {
 	if (abs(rawDepthElem - rawDepthPrevElem) > DIFF_EXCLUDE_THRESHOLD)
 	{
@@ -757,7 +733,7 @@ bool RealSenseProcessor::isOutliers(float rawDepthElem, float rawDepthPrevElem)
 		return false;
 	}
 }
-int RealSenseProcessor::detC(cv::Mat img)
+int RealSenseUpdater::detC(cv::Mat img)
 {
 	cv::Mat src;
 	cv::Mat element = cv::getStructuringElement(morph_elem, cv::Size(2 * morph_size + 1, 2 * morph_size + 1), cv::Point(morph_size, morph_size));
@@ -772,7 +748,67 @@ int RealSenseProcessor::detC(cv::Mat img)
 	return 0;
 }
 
-pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseProcessor::updatePointCloud(bool isHandDataArrived)
+bool RealSenseUpdater::setCamera(int numCam)
+{
+	// ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓HandsViewerより↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+	// 仕組みはよくわからない
+	// カメラの切り替え
+	{
+		PXCSession* session = pp->QuerySession();
+		PXCCapture *g_capture = nullptr;
+		std::map<int, PXCCapture::DeviceInfo> g_deviceInfoMap;
+
+		PXCSession::ImplDesc desc;
+		memset(&desc, 0, sizeof(desc));
+		desc.group = PXCSession::IMPL_GROUP_SENSOR;
+		desc.subgroup = PXCSession::IMPL_SUBGROUP_VIDEO_CAPTURE;
+		int itemPosition = 0;
+		for (int i = 0;; i++)
+		{
+			PXCSession::ImplDesc desc1;
+			if (session->QueryImpl(&desc, i, &desc1) < PXC_STATUS_NO_ERROR) break;
+			if (session->CreateImpl<PXCCapture>(&desc1, &g_capture) < PXC_STATUS_NO_ERROR) continue;
+
+			for (int j = 0;; j++)
+			{
+				PXCCapture::DeviceInfo dinfo;
+				if (g_capture->QueryDeviceInfo(j, &dinfo) < PXC_STATUS_NO_ERROR) break;
+				g_deviceInfoMap[itemPosition++] = dinfo;
+			}
+		}
+		PXCCapture::DeviceInfo* checkedDeviceInfo = &g_deviceInfoMap[numCam];
+		pp->QueryCaptureManager()->FilterByDeviceInfo(checkedDeviceInfo);
+		//こっちでもいいかもsenseManager->QueryCaptureManager()->FilterByDeviceInfo(checkedDeviceInfo->name, checkedDeviceInfo->did, checkedDeviceInfo->didx);
+	}
+	// ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑HandsViewerより↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+
+	// ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+	// https://software.intel.com/en-us/forums/realsense/topic/561008
+	{
+		//PXCSenseManager * psm = PXCSenseManager::CreateInstance();
+		//PXCCapture::DeviceInfo dinfo;
+		//dinfo.didx = numCam;
+		//psm->QueryCaptureManager()->FilterByDeviceInfo(&dinfo);
+		//psm->Release();
+	}
+	// ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+
+	// ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+	// https://software.intel.com/sites/landingpage/realsense/camera-sdk/v1.1/documentation/html/doc_essential_selecting_the_r200_enhanced_device.htmls
+	{
+		//PXCCapture::DeviceInfo dinfo = {};
+		//dinfo.model = PXCCapture::DEVICE_MODEL_SR300;
+		//senseManager->QueryCaptureManager()->FilterByDeviceInfo(&dinfo);
+	}
+	// ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+}
+
+Status RealSenseUpdater::setLaserPower(int num)
+{
+	return pp->QueryCaptureManager()->QueryDevice()->SetIVCAMLaserPower(num);
+}
+
+pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool isHandDataArrived)
 {
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>);
 	if (isHandDataArrived)
@@ -839,6 +875,20 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseProcessor::updatePointCloud(boo
 				point.a = (2 - cloudAlphaCh) * 127;
 				//point.a = 0;
 
+				/*if (abs(rawDepthImagePtr[x] - rawDepthImagePrevPtr[x]) > EXCLUDE_THRESHOLD)
+				{
+				point.r = (rawDepthDiffImagePtr[x] + point.r) >= 255 ? 255 : rawDepthDiffImagePtr[x] + point.r;
+				//point.r += rawDepthDiffImagePtr[x];
+				//point.g = 0;
+				//point.b = 0;
+				point.b = (rawDepthDiffImageFilterdPtr[x] + point.b) >= 255 ? 255 : rawDepthDiffImageFilterdPtr[x] + point.b;
+				}*/
+				/*if (rawDepthDiffImagePtr[x])
+				{
+				point.r = 255;
+				point.g = 0;
+				point.b = 0;
+				}*/
 				if (rawDepthDiffImageFilterdPtr[x] == 255)
 				{
 					point.r = 255;
@@ -862,42 +912,13 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseProcessor::updatePointCloud(boo
 	return(point_cloud_ptr);
 }
 
-void RealSenseProcessor::releaseHandImage(void)
+void RealSenseUpdater::releaseHandImage(void)
 {
 	handImage = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC4);
 	cv::imshow(windowName[0], handImage);
-}*/
-
-void RealSenseProcessor::updateViewerText(void)
-{
-	//const char* TF[] = { "off", "median", "average" };
-	const char* elemStr[] = { "Rect","Cross","Ellipse" };
-	//char morph_str;
-	std::vector<boost::format> entries;
-	/*entries.push_back(boost::format("Hand Point Cloud Num = %i") % pointCloudNum[CLOUD_HAND]);
-	entries.push_back(boost::format("Camera Point Cloud Num = %i") % pointCloudNum[CLOUD_CAMERA]);
-	entries.push_back(boost::format("Joint Point Cloud Num = %i") % pointCloudNum[CLOUD_JOINT]);
-	entries.push_back(boost::format("morph_size = %i") % morph_size);
-	entries.push_back(boost::format("morph_elem = %s") % elemStr[morph_elem]);
-	entries.push_back(boost::format("sigmaG = %.1f") % sigmaG);
-	entries.push_back(boost::format("gSize = %i") % gSize);*/
-	//"Element:\n 0: Rect - 1: Cross - 2: Ellipse"
-
-	const int dx = 5;
-	const int dy = 14;
-	const int fs = 10;
-	boost::format name_fmt("text%i");
-
-	for (size_t i = 0; i < entries.size(); ++i)
-	{
-		std::string name = boost::str(name_fmt % i);
-		std::string entry = boost::str(entries[i]);
-		if (!viewer->updateText(entry, dx, dy + i * (fs + 2), fs, 1.0, 1.0, 1.0, name))
-			viewer->addText(entry, dx, dy + i * (fs + 2), fs, 1.0, 1.0, 1.0, name);
-	}
 }
 
-void RealSenseProcessor::keyboardCallback(const pcl::visualization::KeyboardEvent& event, void*)
+/*void RealSenseUpdater::keyboardCallback(const pcl::visualization::KeyboardEvent& event, void*)
 {
 	if (event.keyDown())
 	{
@@ -919,9 +940,9 @@ void RealSenseProcessor::keyboardCallback(const pcl::visualization::KeyboardEven
 			keyboardCallBackSettings(key);
 		}
 	}
-}
+}*/
 
-/*int RealSenseProcessor::countMat(cv::Mat mat, cv::Vec4b elm)
+int RealSenseUpdater::countMat(cv::Mat mat, cv::Vec4b elm)
 {
 	int matElmNum = 0;
 	for (int y = 0; y > mat.rows; y++)
@@ -936,7 +957,7 @@ void RealSenseProcessor::keyboardCallback(const pcl::visualization::KeyboardEven
 	return matElmNum;
 }
 
-int RealSenseProcessor::countMat(cv::Mat mat, unsigned char elm)
+int RealSenseUpdater::countMat(cv::Mat mat, unsigned char elm)
 {
 	int matElmNum = 0;
 	for (int y = 0; y > mat.rows; y++)
@@ -951,7 +972,7 @@ int RealSenseProcessor::countMat(cv::Mat mat, unsigned char elm)
 	return matElmNum;
 }
 
-int RealSenseProcessor::countMat(cv::Mat mat, float elm)
+int RealSenseUpdater::countMat(cv::Mat mat, float elm)
 {
 	int matElmNum = 0;
 	for (int y = 0; y > mat.rows; y++)
@@ -966,7 +987,7 @@ int RealSenseProcessor::countMat(cv::Mat mat, float elm)
 	return matElmNum;
 }
 
-void RealSenseProcessor::writeDepth(const std::string name)
+void RealSenseUpdater::writeDepth(const std::string name)
 {
 	cv::Mat matDepth = rawDepthImage;
 	std::fstream fs;
@@ -1006,7 +1027,7 @@ void RealSenseProcessor::writeDepth(const std::string name)
 }
 
 
-cv::Mat RealSenseProcessor::readDepth(const std::string name)
+cv::Mat RealSenseUpdater::readDepth(const std::string name)
 {
 	std::fstream fs;
 
@@ -1041,16 +1062,16 @@ cv::Mat RealSenseProcessor::readDepth(const std::string name)
 	}
 
 	return img.clone();
-}*/
+}
 
-std::string RealSenseProcessor::makeNameFolder(int hrgn)
+std::string RealSenseUpdater::makeNameFolder(int hrgn)
 {
 	std::string nameFolder = "ｱ";
 	nameFolder[0] = 'ｱ' + hrgn;
 	return nameFolder;
 }
 
-std::string RealSenseProcessor::makeNameFail(int hrgn, int num)
+std::string RealSenseUpdater::makeNameFail(int hrgn, int num)
 {
 	std::string nameFail = "ｱ-00";
 	nameFail[0] = 'ｱ' + hrgn;
@@ -1059,7 +1080,7 @@ std::string RealSenseProcessor::makeNameFail(int hrgn, int num)
 	return nameFail;
 }
 
-/*cv::Mat RealSenseProcessor::drawGuide(const cv::Mat& input, int num)
+cv::Mat RealSenseUpdater::drawGuide(const cv::Mat& input, int num)
 {
 	cv::Point senter = cv::Point(input.cols / 2, input.rows / 2);
 	cv::Mat mat = cv::Mat::zeros(input.rows, input.cols, CV_8UC1) * 0xff;
@@ -1067,10 +1088,10 @@ std::string RealSenseProcessor::makeNameFail(int hrgn, int num)
 	cv::circle(mat, senter + cv::Point(input.rows / 2 * 0.75 * cos(num * CV_PI / 4), input.rows / 2 * 0.75 * sin(num * CV_PI / 4)), input.rows / 2 * 0.25, cv::Scalar::all(0xff), 2);
 	cv::circle(mat, senter + cv::Point(input.rows / 2 * 0.75 * cos(num * CV_PI / 4), input.rows / 2 * 0.75 * sin(num * CV_PI / 4)), input.rows / 2 * 0.25 - 2, cv::Scalar::all(0x00), -1);
 	return mat.clone();
-}*/
+}
 
 // 文字出力
-void RealSenseProcessor::printText(int hrgn, int num)
+void RealSenseUpdater::printText(int hrgn, int num)
 {
 	//system("cls");
 
@@ -1091,7 +1112,7 @@ void RealSenseProcessor::printText(int hrgn, int num)
 	cout << endl;
 }
 
-/*void RealSenseProcessor::shorGuideImage(const cv::Mat depth, int num)
+void RealSenseUpdater::shorGuideImage(const cv::Mat depth, int num)
 {
 	const int T = 70;
 	const int B = 70;
@@ -1128,11 +1149,11 @@ void RealSenseProcessor::printText(int hrgn, int num)
 
 	image.clone().convertTo(image, CV_32FC3); // カラー表示用に変換
 	imshow("カメラ", image * 0x60 / 0x10000); // 表示
-}*/
+}
 
 // http://rinov.sakura.ne.jp/wp/cpp-date
 // 時刻取得
-std::string RealSenseProcessor::getTime(void)
+std::string RealSenseUpdater::getTime(void)
 {
 	//現在日時を取得する
 	time_t t = time(nullptr);
@@ -1157,7 +1178,8 @@ std::string RealSenseProcessor::getTime(void)
 	return s.str();
 }
 
-/*void RealSenseProcessor::realsenseHandStatus(PXCHandData *handAnalyzer)
+
+void RealSenseUpdater::realsenseHandStatus(PXCHandData *handAnalyzer)
 {
 	PXCHandData::AlertData alertData;
 
@@ -1203,7 +1225,7 @@ std::string RealSenseProcessor::getTime(void)
 	}
 }
 
-void RealSenseProcessor::showStatus(Status sts)
+void RealSenseUpdater::showStatus(Status sts)
 {
 	switch (sts)
 	{
@@ -1313,4 +1335,4 @@ void RealSenseProcessor::showStatus(Status sts)
 		break;
 	}
 	wColorIO(wColorIO::PRINT_ERROR, L"(code:%d)\n", sts);
-}*/
+}

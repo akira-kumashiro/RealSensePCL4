@@ -34,7 +34,7 @@
 #include "HandJointData.h"
 
 #include "PointCloud2Mesh.h"
-#include "RealSenseUpdater.h"
+
 
 #ifdef _DEBUG
 //Debugモードの場合
@@ -58,56 +58,58 @@
 #define DIFF_EXCLUDE_THRESHOLD 20
 #define GAUSS_EXCLUDE_THRESHOLD 10
 #define CONTOUR_SIZE_THRESHOLD 10
-#define NUM 2
 
 using namespace Intel::RealSense;
 
-class RealSenseProcessor
+class RealSenseUpdater
 {
-/*private:
+//private:
+public:
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr hand_point_cloud_ptr;
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr camera_point_cloud_ptr;
-	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr hand_joint_cloud_ptr;*/
+	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr hand_joint_cloud_ptr;
 
-public:
-	RealSenseProcessor();
-	~RealSenseProcessor();
+//public:
+	RealSenseUpdater();
+	~RealSenseUpdater();
 	bool run(void);
 private:
-	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
+	//boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
 
-/*	Status ppInit(void);
+	Status ppInit(void);
 	void showStatus(Status sts);
-	void initializeViewer(const std::string &id, pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &pointCloudPtr, double pointSize = 1.0);
+	//void initializeViewer(const std::string &id, pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &pointCloudPtr, double pointSize = 1.0);
 	bool updateCameraImage(PXCImage* cameraFrame, bool isDepthImage);
 	void realsenseHandStatus(PXCHandData *handAnalyzer);
 	bool updateHandImage(void);
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr updatePointCloud(bool isHandDataArrived);
-	void releaseHandImage(void);*/
-	void updateViewerText(void);
-	void keyboardCallback(const pcl::visualization::KeyboardEvent& event, void*);
-	/*bool acqireImage(PXCImage* cameraFrame, cv::Mat &mat, PXCImage::PixelFormat pixelFormat);
+	void releaseHandImage(void);
+	//void updateViewerText(void);
+	//void keyboardCallback(const pcl::visualization::KeyboardEvent& event, void*);
+	bool acqireImage(PXCImage* cameraFrame, cv::Mat &mat, PXCImage::PixelFormat pixelFormat);
 	int countMat(cv::Mat mat, cv::Vec4b elm);
 	int countMat(cv::Mat mat, unsigned char elm);
-	int countMat(cv::Mat mat, float elm);*/
+	int countMat(cv::Mat mat, float elm);
 	bool keyboardCallBackSettings(int key);
-	/*bool isOutliers(float rawDepthElem, float rawDepthPrevElem);
+	bool isOutliers(float rawDepthElem, float rawDepthPrevElem);
 	int detC(cv::Mat src);
+	bool setCamera(int numCam);
+	Status setLaserPower(int num);
 
-	Status sts;*/
+	Status sts;
 	bool isContinue;
 	bool isUserInterrupt;
 	bool isExit = false;
 
-	//SenseManager *pp;
+	SenseManager *pp;
 
-	/*enum
+	enum
 	{
 		CLOUD_HAND,
 		CLOUD_CAMERA,
 		CLOUD_JOINT,
 		CLOUD_NUM,
-	};*/
+	};
 
 	enum
 	{
@@ -117,7 +119,7 @@ private:
 		CV_WAITKEY_CURSORKEY_LEFT = 2424832,
 	};
 
-	/*bool isCloudArrived[CLOUD_NUM];
+	bool isCloudArrived[CLOUD_NUM];
 
 	static const int COLOR_WIDTH = 1920;
 	static const int COLOR_HEIGHT = 1080;
@@ -145,7 +147,7 @@ private:
 	pxcI32 numberOfHands;
 
 	std::vector<unsigned short> depthBuffer;
-	const std::string windowName[1] = { "handimage" };*/
+	const std::string windowName[1] = { "handimage" };
 
 	/*const int COLOR_WIDTH = 640;
 	const int COLOR_HEIGHT = 480;
@@ -156,22 +158,22 @@ private:
 	const int DEPTH_FPS = 30;*/
 
 	//クラス内変数
-	/*int colorImageNum = 0;
+	int colorImageNum = 0;
 	int depthImageNum = 0;
 	int imageNum = 0;
 	int dataNum = 0;
-	float bilateralS = 5;
-	float bilateralR = 0.05;
-	bool enableBilateral = false;*/
+	//float bilateralS = 5;
+	//float bilateralR = 0.05;
+	//bool enableBilateral = false;
 
 	wchar_t directoryName[20];
 	char nallowDirectoryName[20];
 	std::string dataFileName;
 	std::ofstream dataFile;
-	/*char windowTitle[20];
+	char windowTitle[20];
 
-	double sigmaG = 1.0;
-	int gSize = 1;
+	//double sigmaG = 1.0;
+	//int gSize = 1;
 
 	int pointCloudNum[CLOUD_NUM];
 
@@ -179,12 +181,12 @@ private:
 	PXCHandData* handData = NULL;
 	PXCProjection *projection = nullptr;
 
-	PXCHandModule *handAnalyzer = NULL;*/
+	PXCHandModule *handAnalyzer = NULL;
 
 	//ここからdptviewer
 
 	// init()を実行する前に設定する　許可：1
-	/*bool enableReadColor = false; // カラー画像の取得許可
+	bool enableReadColor = false; // カラー画像の取得許可
 	bool enableReadDepth = false; // depth8i画像の取得許可
 	bool enableHandTracking = false; // ハンドトラッキングの許可
 	bool enableMirror = false; // ミラー表示の許可
@@ -216,32 +218,32 @@ private:
 	}dptHeader;
 
 	// depth32f画像をファイルに書き込む
-	void writeDepth(const std::string name);*/
+	void writeDepth(const std::string name);
 	std::string makeNameFolder(int hrgn);
 	std::string makeNameFail(int hrgn, int num);
-	//cv::Mat drawGuide(const cv::Mat& input, int num);
+	cv::Mat drawGuide(const cv::Mat& input, int num);
 	void printText(int hrgn, int num);
-	//void shorGuideImage(const cv::Mat depth, int num);
-	//cv::Mat RealSenseProcessor::readDepth(const std::string name);
+	void shorGuideImage(const cv::Mat depth, int num);
+	cv::Mat RealSenseUpdater::readDepth(const std::string name);
 	std::string getTime(void);
 
 	const int numMax = 9; // 保存する一文字の数
-	/*const int distMin = 375; // 手前の距離
+	const int distMin = 375; // 手前の距離
 	const int distMax = 425; // 奥の距離
-	const int sizeLine = 20; // 線の太さ*/
+	const int sizeLine = 20; // 線の太さ
 
 	int num = 0; // 番号格納用
 	int hrgn = 0; // 文字格納用
 
 	std::string _time;
 
-	/*int morph_elem = 0;
+	int morph_elem = 0;
 	int morph_size = 1;
 	int const max_elem = 2;
 
-	int cloudAlphaCh=0;
+	int cloudAlphaCh = 0;
 
-	HandJointData handjointdata[2];*/
+	HandJointData handjointdata[2];
 
 	PointCloud2Mesh::gpParameters param;
 };

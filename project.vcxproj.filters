@@ -16,6 +16,7 @@
     <ClCompile Include="wcolorIO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RealSenseUpdater.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="C:\Users\denki\Documents\2018Kumashiro\RealSensePCL4\CMakelists.txt" />
@@ -41,5 +42,6 @@
     <ClInclude Include="wcolorIO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RealSenseUpdater.h" />
   </ItemGroup>
 </Project>
