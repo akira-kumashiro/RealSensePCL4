@@ -58,7 +58,7 @@
 #define DIFF_EXCLUDE_THRESHOLD 20
 #define GAUSS_EXCLUDE_THRESHOLD 10
 #define CONTOUR_SIZE_THRESHOLD 10*/
-#define NUM 1
+#define NUM 2
 #define POWER 3
 
 using namespace Intel::RealSense;

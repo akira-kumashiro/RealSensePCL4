@@ -71,11 +71,12 @@ public:
 
 	RealSenseUpdater();
 	~RealSenseUpdater();
-	int init();
+	int init(int num);
 	int run(void);
 	bool setCamera(int numCam);
 	Status setLaserPower(int num);
 	bool saveData(std::string directory, std::string name);
+	void setEnableHandTracking(bool _enableHandTracking);
 
 	enum
 	{
@@ -111,6 +112,8 @@ private:
 	bool isContinue;
 	bool isUserInterrupt;
 	bool isExit = false;
+	int cameraNum;
+	//bool enableHandTracking = false;
 
 	SenseManager *pp;
 

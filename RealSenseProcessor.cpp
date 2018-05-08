@@ -19,7 +19,7 @@ RealSenseProcessor::~RealSenseProcessor()
 {
 	for (int i = 0; i < NUM; i++)
 	{
-		
+
 	}
 
 	//viewer->close();
@@ -34,15 +34,17 @@ bool RealSenseProcessor::run(void)
 {
 	for (int i = 0; i < NUM; i++)
 	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSP>");
-		wColorIO(wColorIO::PRINT_SUCCESS, L"Prosessing #%d device.\n",i);
+		/*wColorIO(wColorIO::PRINT_INFO, L"RSP>");
+		wColorIO(wColorIO::PRINT_SUCCESS, L"Prosessing #%d device.\n",i);*/
 
-		if (rsu[i].init() < RealSenseUpdater::RSU_NO_ERROR)
+		rsu[i].setEnableHandTracking(false);
+
+		if (rsu[i].init(i) < RealSenseUpdater::RSU_NO_ERROR)
 		{
 			return false;
 		}
 	}
-	
+
 	wColorIO(wColorIO::PRINT_INFO, L"RSP>");
 	wColorIO(wColorIO::PRINT_SUCCESS, L"init finish\n");
 
@@ -50,8 +52,8 @@ bool RealSenseProcessor::run(void)
 	{
 		for (int i = 0; i < NUM; i++)
 		{
-			wColorIO(wColorIO::PRINT_INFO, L"RSP>");
-			wColorIO(wColorIO::PRINT_SUCCESS, L"Prosessing #%d device.\n", i);
+			/*wColorIO(wColorIO::PRINT_INFO, L"RSP>");
+			wColorIO(wColorIO::PRINT_SUCCESS, L"Prosessing #%d device.\n", i);*/
 			rsu[i].setLaserPower(POWER);
 			if (rsu[i].run() < RealSenseUpdater::RSU_NO_ERROR)
 				return false;
@@ -138,10 +140,10 @@ void RealSenseProcessor::updateViewerText(void)
 
 	for (size_t i = 0; i < entries.size(); ++i)
 	{
-//		std::string name = boost::str(name_fmt % i);
-//		std::string entry = boost::str(entries[i]);
-//		if (!viewer->updateText(entry, dx, dy + i * (fs + 2), fs, 1.0, 1.0, 1.0, name))
-//			viewer->addText(entry, dx, dy + i * (fs + 2), fs, 1.0, 1.0, 1.0, name);
+		//		std::string name = boost::str(name_fmt % i);
+		//		std::string entry = boost::str(entries[i]);
+		//		if (!viewer->updateText(entry, dx, dy + i * (fs + 2), fs, 1.0, 1.0, 1.0, name))
+		//			viewer->addText(entry, dx, dy + i * (fs + 2), fs, 1.0, 1.0, 1.0, name);
 	}
 }
 

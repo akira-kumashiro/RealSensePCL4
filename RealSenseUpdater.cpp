@@ -1,11 +1,12 @@
 #include "RealSenseUpdater.h"
 
 RealSenseUpdater::RealSenseUpdater() :
-	viewer(new pcl::visualization::PCLVisualizer("3D Viewer")),
+	//viewer(new pcl::visualization::PCLVisualizer("3D Viewer")),
 	hand_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
 	camera_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
 	hand_joint_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>)//PCL関連の変数の初期化
 {
+
 	wColorIO(wColorIO::PRINT_INFO, L"RSU>");
 	wColorIO(wColorIO::PRINT_INFO, L"Start\n");
 
@@ -55,31 +56,37 @@ RealSenseUpdater::~RealSenseUpdater()
 {
 	// Releases lock so pipeline can process next frame 
 	pp->ReleaseFrame();
-	viewer->close();
+	//viewer->close();
 
 	cv::destroyAllWindows();
 
-	if (handAnalyzer == nullptr)
+	if (enableHandTracking)
 	{
-		pp->Release();
-		pp = nullptr;
-	}
-	if (handData == nullptr)
-	{
-		handData->Release();
-		handData = nullptr;
+		if (handAnalyzer == nullptr)
+		{
+			pp->Release();
+			pp = nullptr;
+		}
+		if (handData == nullptr)
+		{
+			handData->Release();
+			handData = nullptr;
+		}
 	}
 
-	if (projection == nullptr)
+	/*if (projection == nullptr)
 	{
 		projection->Release();
 		projection = nullptr;
-	}
+	}*/
 	wColorIO(wColorIO::PRINT_SUCCESS, L"Exiting\n");
 }
 
-int RealSenseUpdater::init()
+int RealSenseUpdater::init(int num)
 {
+	cameraNum = num;
+
+	setCamera(num);
 	sts = ppInit();
 	if (sts < Status::STATUS_NO_ERROR)
 	{
@@ -104,14 +111,14 @@ int RealSenseUpdater::run(void)
 	{
 		isCloudArrived[i] = false;
 	}
-	viewer->spinOnce();
+	//viewer->spinOnce();
 
 	//Waits until new frame is available and locks it for application processing
 	sts = pp->AcquireFrame(true);
 
 	if (!pp->IsConnected())
 	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_ERROR, L"device removed\n");
 		pp->Close();
 		isContinue = true;
@@ -120,7 +127,7 @@ int RealSenseUpdater::run(void)
 	}
 	else
 	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_SUCCESS, L"Device checked.\n");
 	}
 
@@ -133,57 +140,84 @@ int RealSenseUpdater::run(void)
 	const PXCCapture::Sample *sample = pp->QuerySample();
 	if (sample != nullptr)
 	{
-		if (sample->color && !updateCameraImage(sample->color, false)) return RSU_COLOR_IMAGE_UNAVAILABLE;//break;
-		if (sample->depth && !updateCameraImage(sample->depth, true)) return RSU_DEPTH_IMAGE_UNAVAILABLE;//break;
-
-		detC(rawDepthDiffImage.clone());
-
-
-		if (handData)
+		if (sample->color && !updateCameraImage(sample->color, false))
 		{
-			handData->Update();
-			updateHandImage();
-			hand_point_cloud_ptr = updatePointCloud(true);
-
-			viewer->updatePointCloud(hand_point_cloud_ptr, "handcloud");
-			viewer->updatePointCloud(hand_joint_cloud_ptr, "handjoint");
-
-			if (pointCloudNum[CLOUD_HAND] != 0)
-				isCloudArrived[CLOUD_HAND] = true;
-
-			//viewer = app.rgbVis(point_cloud_ptr);
-
-			realsenseHandStatus(handData);
+			return RSU_COLOR_IMAGE_UNAVAILABLE;
 		}
 		else
 		{
-			wColorIO(wColorIO::PRINT_INFO, L"RSU>");
-			wColorIO(wColorIO::PRINT_ERROR, L"Hands couldn't be detected\n");
-			releaseHandImage();
+			wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
+			wColorIO(wColorIO::PRINT_SUCCESS, L"colorImage catched\n");
+		}
+		if (sample->depth && !updateCameraImage(sample->depth, true))
+		{
+			return RSU_DEPTH_IMAGE_UNAVAILABLE;
+		}
+		else
+		{
+			wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
+			wColorIO(wColorIO::PRINT_SUCCESS, L"depthImage catched\n");
 		}
 
-		camera_point_cloud_ptr = updatePointCloud(false);
+		//detC(rawDepthDiffImage.clone());
 
-		viewer->updatePointCloud(camera_point_cloud_ptr, "cameracloud");
 
-		if (pointCloudNum[CLOUD_CAMERA] != 0)
-			isCloudArrived[CLOUD_CAMERA] = true;
+		if (enableHandTracking)
+		{
+			if (handData)
+			{
+				handData->Update();
+				updateHandImage();
+				//hand_point_cloud_ptr = updatePointCloud(true);
+
+				//viewer->updatePointCloud(hand_point_cloud_ptr, "handcloud");
+				//viewer->updatePointCloud(hand_joint_cloud_ptr, "handjoint");
+
+				/*if (pointCloudNum[CLOUD_HAND] != 0)
+					isCloudArrived[CLOUD_HAND] = true;*/
+
+				//viewer = app.rgbVis(point_cloud_ptr);
+
+				realsenseHandStatus(handData);
+			}
+			else
+			{
+				wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
+				wColorIO(wColorIO::PRINT_ERROR, L"Hands couldn't be detected\n");
+				releaseHandImage();
+			}
+		}
+
+		//camera_point_cloud_ptr = updatePointCloud(false);
+
+		//viewer->updatePointCloud(camera_point_cloud_ptr, "cameracloud");
+
+		/*if (pointCloudNum[CLOUD_CAMERA] != 0)
+			isCloudArrived[CLOUD_CAMERA] = true;*/
 
 		rawDepthImagePrev = rawDepthImage.clone();
 	}
 
 	// Releases lock so pipeline can process next frame 
 	pp->ReleaseFrame();
-	if (handAnalyzer == nullptr)
+	if (enableHandTracking)
+	{
+		if (handAnalyzer == nullptr)
+		{
+			pp->Release();
+			pp = nullptr;
+		}
+		if (handData == nullptr)
+		{
+			handData->Release();
+			handData = nullptr;
+		}
+	}
+	/*else
 	{
 		pp->Release();
 		pp = nullptr;
-	}
-	if (handData == nullptr)
-	{
-		handData->Release();
-		handData = nullptr;
-	}
+	}*/
 
 	if (projection == nullptr)
 	{
@@ -403,14 +437,15 @@ Status RealSenseUpdater::ppInit(void)
 
 	if (sts < Status::STATUS_NO_ERROR)
 	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_ERROR, L"Create Color-Image pipeline has been unsuccessful.\n");
 		return sts;
 	}
 	else
 	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_SUCCESS, L"Create Color-Image pipeline has been successful.\n");
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_INFO, L"Width:");
 		wColorIO(wColorIO::PRINT_VALUE, L"%dpx ", COLOR_WIDTH);
 		wColorIO(wColorIO::PRINT_INFO, L"Height:");
@@ -422,14 +457,15 @@ Status RealSenseUpdater::ppInit(void)
 	sts = pp->EnableStream(PXCCapture::StreamType::STREAM_TYPE_DEPTH, DEPTH_WIDTH, DEPTH_HEIGHT, DEPTH_FPS);
 	if (sts < Status::STATUS_NO_ERROR)
 	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_ERROR, L"Create Depth-Image pipeline has been unsuccessful.\n");
 		return sts;
 	}
 	else
 	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_SUCCESS, L"Create Depth-Image pipeline has been successful.\n");
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_INFO, L"Width:");
 		wColorIO(wColorIO::PRINT_VALUE, L"%dpx ", DEPTH_WIDTH);
 		wColorIO(wColorIO::PRINT_INFO, L"Height:");
@@ -438,34 +474,36 @@ Status RealSenseUpdater::ppInit(void)
 		wColorIO(wColorIO::PRINT_VALUE, L"%d\n", DEPTH_FPS);
 	}
 
-	sts = pp->EnableHand(0);
-
-	if (sts < PXC_STATUS_NO_ERROR)
+	if (enableHandTracking)
 	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
-		wColorIO(wColorIO::PRINT_ERROR, L"Failed to pair the hand module with I/O.\n");
-		return sts;
-	}
-	else
-	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
-		wColorIO(wColorIO::PRINT_SUCCESS, L"Succeeded to pair the hand module with I/O.\n");
-	}
+		sts = pp->EnableHand();
 
-	handAnalyzer = pp->QueryHand();
+		if (sts < PXC_STATUS_NO_ERROR)
+		{
+			wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
+			wColorIO(wColorIO::PRINT_ERROR, L"Failed to pair the hand module with I/O.\n");
+			return sts;
+		}
+		else
+		{
+			wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
+			wColorIO(wColorIO::PRINT_SUCCESS, L"Succeeded to pair the hand module with I/O.\n");
+		}
 
-	if (handAnalyzer == NULL)
-	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
-		wColorIO(wColorIO::PRINT_ERROR, L"Failed to pair the hand module with I/O\n");
-		return sts;
-	}
-	else
-	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
-		wColorIO(wColorIO::PRINT_SUCCESS, L"Succeeded to pair the hand module with I/O\n");
-	}
+		handAnalyzer = pp->QueryHand();
 
+		if (handAnalyzer == NULL)
+		{
+			wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
+			wColorIO(wColorIO::PRINT_ERROR, L"Failed to pair the hand module with I/O\n");
+			return sts;
+		}
+		else
+		{
+			wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
+			wColorIO(wColorIO::PRINT_SUCCESS, L"Succeeded to pair the hand module with I/O\n");
+		}
+	}
 	// パイプラインを初期化する
 	sts = pp->Init();
 
@@ -477,57 +515,64 @@ Status RealSenseUpdater::ppInit(void)
 		if (device != NULL)// ミラー表示にする
 		{
 			device->SetMirrorMode(Capture::Device::MirrorMode::MIRROR_MODE_HORIZONTAL);
-			wColorIO(wColorIO::PRINT_INFO, L"RSU>");
-			wColorIO(wColorIO::PRINT_INFO, L"MirrorMode has been enabled.\n");
-		}
 
-		device->QueryDeviceInfo(&dinfo);
-		if (dinfo.model == PXCCapture::DEVICE_MODEL_IVCAM)
-		{
-			device->SetDepthConfidenceThreshold(1);
-			device->SetIVCAMFilterOption(6);
+			wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
+			wColorIO(wColorIO::PRINT_INFO, L"MirrorMode has been enabled.\n");
 		}
 
 		projection = device->CreateProjection();
 
-		if (handAnalyzer)
+		if (enableHandTracking)
 		{
-			handData = handAnalyzer->CreateOutput();
-			config = handAnalyzer->CreateActiveConfiguration();
-			//config->SetTrackingMode(PXCHandData::TRACKING_MODE_EXTREMITIES);//高速・輪郭モード時にコメントアウト
-			//config->EnableNormalizedJoints(showNormalizedSkeleton);
-			config->EnableSegmentationImage(true);
-			config->DisableAllGestures();
-		}
-		else
-		{
-			wColorIO(wColorIO::PRINT_INFO, L"RSU>");
-			wColorIO(wColorIO::PRINT_ERROR, L"Failed to set up handData\n");
-			return sts;
-		}
+			device->QueryDeviceInfo(&dinfo);
+			if (dinfo.model == PXCCapture::DEVICE_MODEL_IVCAM)
+			{
+				device->SetDepthConfidenceThreshold(1);
+				device->SetIVCAMFilterOption(6);
+			}
 
-		config->ApplyChanges();
-		config->Update();
+
+			if (handAnalyzer)
+			{
+				handData = handAnalyzer->CreateOutput();
+				config = handAnalyzer->CreateActiveConfiguration();
+				//config->SetTrackingMode(PXCHandData::TRACKING_MODE_EXTREMITIES);//高速・輪郭モード時にコメントアウト
+				//config->EnableNormalizedJoints(showNormalizedSkeleton);
+				config->EnableSegmentationImage(true);
+				config->DisableAllGestures();
+			}
+			else
+			{
+				wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
+				wColorIO(wColorIO::PRINT_ERROR, L"Failed to set up handData\n");
+				return sts;
+			}
+			config->ApplyChanges();
+			config->Update();
+		}
 	}
 	else
 	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_ERROR, L"Pipeline initializing has been failed.\n");
 		return sts;
 	}
 
 	if (sts >= PXC_STATUS_NO_ERROR)
 	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_SUCCESS, L"Create pipeline has been successful.\n");
 	}
 
-	viewer->setBackgroundColor(0, 0, 0);
-	initializeViewer("handcloud", hand_point_cloud_ptr);
-	initializeViewer("cameracloud", camera_point_cloud_ptr, 0.1);
-	initializeViewer("handjoint", hand_joint_cloud_ptr, 10);
-	viewer->addCoordinateSystem(0.01);
-	viewer->initCameraParameters();
+	//viewer->setBackgroundColor(0, 0, 0);
+	/*if (enableHandTracking)
+	{
+		initializeViewer("handcloud", hand_point_cloud_ptr);
+		initializeViewer("handjoint", hand_joint_cloud_ptr, 10);
+	}*/
+	//initializeViewer("cameracloud", camera_point_cloud_ptr, 0.1);
+	//viewer->addCoordinateSystem(0.01);
+	//viewer->initCameraParameters();
 
 	return sts;
 }
@@ -540,7 +585,7 @@ bool RealSenseUpdater::acqireImage(PXCImage* cameraFrame, cv::Mat &mat, PXCImage
 
 	if (sts < PXC_STATUS_NO_ERROR)
 	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_ERROR, L"Cannot reach the cameraFrame\n");
 	}
 
@@ -565,7 +610,7 @@ bool RealSenseUpdater::updateCameraImage(PXCImage* cameraFrame, bool isDepthImag
 {
 	if (cameraFrame == nullptr)
 	{
-		wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_ERROR, L"cameraFrame throws nullptr.\n");
 		return false;
 	}
@@ -635,7 +680,7 @@ bool RealSenseUpdater::updateHandImage(void)
 			sts = handData->QueryHandData(PXCHandData::AccessOrderType::ACCESS_ORDER_BY_ID, i, hand);
 			if (sts < PXC_STATUS_NO_ERROR)
 			{
-				wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+				wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 				wColorIO(wColorIO::PRINT_ERROR, L"Couldn't update hand frame.\n");
 				continue;
 			}
@@ -644,7 +689,7 @@ bool RealSenseUpdater::updateHandImage(void)
 			sts = hand->QuerySegmentationImage(image);
 			if (sts < PXC_STATUS_NO_ERROR)
 			{
-				wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+				wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 				wColorIO(wColorIO::PRINT_ERROR, L"Couldn't acquire hand image.\n");
 				continue;
 			}
@@ -652,7 +697,7 @@ bool RealSenseUpdater::updateHandImage(void)
 			sts = image->AcquireAccess(PXCImage::ACCESS_READ, PXCImage::PIXEL_FORMAT_Y8, &data);
 			if (sts < PXC_STATUS_NO_ERROR)
 			{
-				wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+				wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 				wColorIO(wColorIO::PRINT_ERROR, L"Couldn't acquire masked hand image.\n");
 				continue;
 			}
@@ -798,26 +843,37 @@ bool RealSenseUpdater::saveData(std::string directory, std::string name)
 
 	flip(colorImage, tmp, 1); // 反転
 	cv::imwrite(directory + "-Color" + name + ".tif", tmp); // color画像保存
-	flip(handImage, tmp, 1); // 反転
-	cv::imwrite(directory + "-HandImage" + name + ".tif", tmp); // handImage画像保存
-	flip(handPoint, tmp, 1); // 反転
-	cv::imwrite(directory + "-HandPoint" + name + ".tif", tmp); // handPoint画像保存
+	if (enableHandTracking)
+	{
+		flip(handImage, tmp, 1); // 反転
+		cv::imwrite(directory + "-HandImage" + name + ".tif", tmp); // handImage画像保存
+		flip(handPoint, tmp, 1); // 反転
+		cv::imwrite(directory + "-HandPoint" + name + ".tif", tmp); // handPoint画像保存
+	}
 	flip(rawDepthImage, tmp, 1); // 反転
 	imwrite(directory + "-Depth見る用" + name + ".tif", tmp * 0x60 / 0x100); // depth見る用画像保存
 	writeDepth(directory + "-Depth" + "\\" + makeNameFail(hrgn, num)); // depth画像保存
-	if (isCloudArrived[CLOUD_HAND])
+	if (enableHandTracking)
 	{
-		pcl::io::savePCDFileBinary(directory + "-PCLHand" + name + ".pcd", *hand_point_cloud_ptr);
-		PointCloud2Mesh(hand_point_cloud_ptr, directory + "-PCLHand" + name + "s.obj", param, true);
+		if (isCloudArrived[CLOUD_HAND])
+		{
+			pcl::io::savePCDFileBinary(directory + "-PCLHand" + name + ".pcd", *hand_point_cloud_ptr);
+			PointCloud2Mesh(hand_point_cloud_ptr, directory + "-PCLHand" + name + "s.obj", param, true);
+		}
+		if (isCloudArrived[CLOUD_JOINT])
+			pcl::io::savePCDFileBinary(directory + "-PCLJoint" + name + ".pcd", *hand_joint_cloud_ptr);
 	}
 	if (isCloudArrived[CLOUD_CAMERA])
 		pcl::io::savePCDFileBinary(directory + "-PCLCamera" + name + ".pcd", *camera_point_cloud_ptr);
-	if (isCloudArrived[CLOUD_JOINT])
-		pcl::io::savePCDFileBinary(directory + "-PCLJoint" + name + ".pcd", *hand_joint_cloud_ptr);
 	tmp = readDepth(directory + "-Depth" + "\\" + makeNameFail(hrgn, num)) * 0x60 / 0x10000;
 
 	cv::imshow("保存済み", tmp); // 保存したものの表示
 	return true;
+}
+
+void RealSenseUpdater::setEnableHandTracking(bool _enableHandTracking)
+{
+	enableHandTracking = _enableHandTracking;
 }
 
 bool RealSenseUpdater::setCamera(int numCam)
@@ -1299,7 +1355,7 @@ void RealSenseUpdater::realsenseHandStatus(PXCHandData *handAnalyzer)
 
 void RealSenseUpdater::showStatus(Status sts)
 {
-	wColorIO(wColorIO::PRINT_INFO, L"RSU>");
+	wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 	switch (sts)
 	{
 	case Intel::RealSense::NSStatus::STATUS_NO_ERROR:
