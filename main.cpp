@@ -14,7 +14,7 @@ int wmain(int argc, WCHAR* argv[])
 			if (rsp->run() == false)
 			{
 				delete rsp;
-				return FALSE;
+				return false;
 			}
 			else
 			{

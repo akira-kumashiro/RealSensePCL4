@@ -63,25 +63,36 @@ using namespace Intel::RealSense;
 
 class RealSenseUpdater
 {
-//private:
+	//private:
 public:
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr hand_point_cloud_ptr;
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr camera_point_cloud_ptr;
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr hand_joint_cloud_ptr;
 
-//public:
 	RealSenseUpdater();
 	~RealSenseUpdater();
-	bool init();
-	bool run(void);
+	int init();
+	int run(void);
 	bool setCamera(int numCam);
 	Status setLaserPower(int num);
+	bool saveData(std::string directory, std::string name);
+
+	enum
+	{
+		RSU_NO_ERROR = 0,
+		RSU_DEVICE_REMOVED = -2,
+		RSU_ERROR_OCCURED = -1,
+		RSU_COLOR_IMAGE_UNAVAILABLE = -3,
+		RSU_DEPTH_IMAGE_UNAVAILABLE = -4,
+		RSU_USER_INTERRUPTED = -5
+	};
+
 private:
-	//boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
+	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
 
 	Status ppInit(void);
 	void showStatus(Status sts);
-	//void initializeViewer(const std::string &id, pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &pointCloudPtr, double pointSize = 1.0);
+	void initializeViewer(const std::string &id, pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &pointCloudPtr, double pointSize = 1.0);
 	bool updateCameraImage(PXCImage* cameraFrame, bool isDepthImage);
 	void realsenseHandStatus(PXCHandData *handAnalyzer);
 	bool updateHandImage(void);
@@ -93,11 +104,9 @@ private:
 	int countMat(cv::Mat mat, cv::Vec4b elm);
 	int countMat(cv::Mat mat, unsigned char elm);
 	int countMat(cv::Mat mat, float elm);
-	bool keyboardCallBackSettings(int key);
+	//bool keyboardCallBackSettings(int key);
 	bool isOutliers(float rawDepthElem, float rawDepthPrevElem);
 	int detC(cv::Mat src);
-	
-
 	Status sts;
 	bool isContinue;
 	bool isUserInterrupt;
@@ -121,6 +130,8 @@ private:
 		CV_WAITKEY_CURSORKEY_LEFT = 2424832,
 	};
 
+
+
 	bool isCloudArrived[CLOUD_NUM];
 
 	static const int COLOR_WIDTH = 1920;
@@ -134,7 +145,7 @@ private:
 
 	//âÊëúï\é¶ÇÃãLèq
 	cv::Mat colorImage;
-	cv::Mat depthImage;
+	//cv::Mat depthImage;
 	cv::Mat rawDepthImage;
 	cv::Mat rawDepthImagePrev;
 	cv::Mat handImage1;
@@ -237,13 +248,13 @@ private:
 	int num = 0; // î‘çÜäiî[óp
 	int hrgn = 0; // ï∂éöäiî[óp
 
-	std::string _time;
+	//std::string _time;
 
 	int morph_elem = 0;
 	int morph_size = 1;
 	int const max_elem = 2;
 
-	int cloudAlphaCh = 0;
+	//int cloudAlphaCh = 0;
 
 	HandJointData handjointdata[2];
 
