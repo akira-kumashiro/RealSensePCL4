@@ -55,12 +55,13 @@ bool RealSenseProcessor::run(void)
 			/*wColorIO(wColorIO::PRINT_INFO, L"RSP>");
 			wColorIO(wColorIO::PRINT_SUCCESS, L"Prosessing #%d device.\n", i);*/
 			rsu[i].setLaserPower(POWER);
+			keyboardCallBackSettings(cv::waitKey(TIME_STANDBY));
 			if (rsu[i].run() < RealSenseUpdater::RSU_NO_ERROR)
 				return false;
 			//printf_s("\n%d\n",rsu[i].run());
 			if (NUM > 1)
 				rsu[i].setLaserPower(0);
-			keyboardCallBackSettings(cv::waitKey(TIME_STANDBY));
+			
 		}
 	}
 

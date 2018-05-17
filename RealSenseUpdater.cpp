@@ -189,7 +189,7 @@ int RealSenseUpdater::run(void)
 			}
 		}
 
-		//camera_point_cloud_ptr = updatePointCloud(false);
+		camera_point_cloud_ptr = updatePointCloud(false);
 
 		//viewer->updatePointCloud(camera_point_cloud_ptr, "cameracloud");
 
@@ -197,6 +197,8 @@ int RealSenseUpdater::run(void)
 			isCloudArrived[CLOUD_CAMERA] = true;
 		if (pointCloudNum[CLOUD_NEAR] != 0)
 			isCloudArrived[CLOUD_NEAR] = true;
+
+		imshow("img(" + std::to_string(cameraNum) + ")", rawDepthImage * 0x60 / 0x100);
 
 		rawDepthImagePrev = rawDepthImage.clone();
 	}
@@ -858,17 +860,21 @@ bool RealSenseUpdater::saveData(std::string directory, std::string name)
 	writeDepth(directory + "-Depth" + name); // depth‰æ‘œ•Û‘¶
 	if (enableHandTracking)
 	{
-		if (isCloudArrived[CLOUD_HAND])
+		//if (isCloudArrived[CLOUD_HAND])
+		if(pointCloudNum[CLOUD_HAND]!=0)
 		{
 			pcl::io::savePCDFileBinary(directory + "-PCLHand" + name + ".pcd", *hand_point_cloud_ptr);
 			PointCloud2Mesh(hand_point_cloud_ptr, directory + "-PCLHand" + name + "s.obj", param, true);
 		}
-		if (isCloudArrived[CLOUD_JOINT])
+		//if (isCloudArrived[CLOUD_JOINT])
+		if (pointCloudNum[CLOUD_JOINT] != 0)
 			pcl::io::savePCDFileBinary(directory + "-PCLJoint" + name + ".pcd", *hand_joint_cloud_ptr);
 	}
-	if (isCloudArrived[CLOUD_CAMERA])
+	//if (isCloudArrived[CLOUD_CAMERA])
+	if (pointCloudNum[CLOUD_CAMERA] != 0)
 		pcl::io::savePCDFileBinary(directory + "-PCLCamera" + name + ".pcd", *camera_point_cloud_ptr);
-	if (isCloudArrived[CLOUD_NEAR])
+	//if (isCloudArrived[CLOUD_NEAR])
+	if (pointCloudNum[CLOUD_NEAR] != 0)
 		pcl::io::savePCDFileBinary(directory + "-PCLNear" + name + ".pcd", *near_point_cloud_ptr);
 	tmp = readDepth(directory + "-Depth" + name) * 0x60 / 0x10000;
 
@@ -944,6 +950,7 @@ Status RealSenseUpdater::setLaserPower(int num)
 pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool isHandDataArrived)
 {
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>);
+	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr near_point_cloud_ptr_temp(new pcl::PointCloud<pcl::PointXYZRGBA>);
 	if (isHandDataArrived)
 		pointCloudNum[CLOUD_HAND] = 0;
 	else
@@ -952,20 +959,20 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool 
 		pointCloudNum[CLOUD_NEAR] = 0;
 	}
 
-	for (int y = 0; y < handImage.rows; y += (isHandDataArrived ? 1 : CLOUD_PITCH))
+	for (int y = 0; y < rawDepthImage.rows; y += (isHandDataArrived ? 1 : CLOUD_PITCH))
 	{
-		unsigned char *grayHandImagePtr = grayHandImage.ptr<uchar>(y);
+		//unsigned char *grayHandImagePtr = grayHandImage.ptr<uchar>(y);
 		float *rawDepthImagePtr = rawDepthImage.ptr<float>(y);
-		cv::Vec4b *handImagePtr = handImage.ptr<cv::Vec4b>(y);
+		//cv::Vec4b *handImagePtr = handImage.ptr<cv::Vec4b>(y);
 		unsigned char *rawDepthDiffImagePtr = rawDepthDiffImage.ptr<uchar>(y);
 		unsigned char *rawDepthDiffImageFilterdPtr = rawDepthDiffImageFilterd.ptr<uchar>(y);
 
-		for (int x = 0; x < handImage.cols; x += (isHandDataArrived ? 1 : CLOUD_PITCH))
+		for (int x = 0; x < rawDepthImage.cols; x += (isHandDataArrived ? 1 : CLOUD_PITCH))
 		{
 			if (rawDepthImagePrev.total() <= 10)
 				continue;
 			float *rawDepthImagePrevPtr = rawDepthImagePrev.ptr<float>(y);
-			if (rawDepthImagePtr[x] != 0 && !(grayHandImagePtr[x] != 255 && isHandDataArrived))//&&!isOutliers(rawDepthImagePtr[x],rawDepthImagePrevPtr[x])
+			if (rawDepthImagePtr[x] != 0)// && !(grayHandImagePtr[x] != 255 && isHandDataArrived)
 			{
 				PXCPointF32 dColorPoint;//Unit:mm
 				PXCPoint3DF32 dDepthPoint;
@@ -996,8 +1003,8 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool 
 						isSkip = true;
 					}
 
-					if (isHandDataArrived)
-						handImagePtr[x] = colorPx;
+					//if (isHandDataArrived)
+					//	handImagePtr[x] = colorPx;
 					point.r = colorPx[2];
 					point.g = colorPx[1];
 					point.b = colorPx[0];
@@ -1040,7 +1047,7 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool 
 					point_cloud_ptr->points.push_back(point);
 					if (point.z < 0.4)
 					{
-						near_point_cloud_ptr->points.push_back(point);
+						near_point_cloud_ptr_temp->points.push_back(point);
 						pointCloudNum[CLOUD_NEAR]++;
 					}
 				}
@@ -1053,6 +1060,9 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool 
 			}
 		}
 	}
+
+	near_point_cloud_ptr = near_point_cloud_ptr_temp;
+
 	return(point_cloud_ptr);
 }
 
