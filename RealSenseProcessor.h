@@ -60,6 +60,7 @@
 #define CONTOUR_SIZE_THRESHOLD 10*/
 #define NUM 2
 #define POWER 3
+#define TIME_STANDBY 10
 
 using namespace Intel::RealSense;
 
@@ -98,6 +99,8 @@ private:
 	std::string getTime(void);
 
 	const int numMax = 9; // •Û‘¶‚·‚éˆê•¶š‚Ì”
+
+	const std::string dataFolderName = "Data";
 
 	int num = 0; // ”Ô†Ši”[—p
 	int hrgn = 0; // •¶šŠi”[—p

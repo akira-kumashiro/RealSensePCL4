@@ -60,6 +60,7 @@ bool RealSenseProcessor::run(void)
 			//printf_s("\n%d\n",rsu[i].run());
 			if (NUM > 1)
 				rsu[i].setLaserPower(0);
+			keyboardCallBackSettings(cv::waitKey(TIME_STANDBY));
 		}
 	}
 
@@ -77,18 +78,20 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 	case CV_WAITKEY_CURSORKEY_RIGHT:hrgn++;	break; // 文字 + 1
 	case CV_WAITKEY_CURSORKEY_LEFT:hrgn--;	break; // 文字 - 1
 	case ' ': // 保存
-		CreateDirectory((_time).c_str(), NULL); // 大本のフォルダ作成（名前が時間）
-		CreateDirectory((_time + "\\" + makeNameFolder(hrgn) + "-Color").c_str(), NULL); // color画像フォルダ作成
-		CreateDirectory((_time + "\\" + makeNameFolder(hrgn) + "-Depth").c_str(), NULL); // depth画像フォルダ作成
-		CreateDirectory((_time + "\\" + makeNameFolder(hrgn) + "-HandImage").c_str(), NULL); // HandImage画像フォルダ作成
-		CreateDirectory((_time + "\\" + makeNameFolder(hrgn) + "-HandPoint").c_str(), NULL); // HandPoint画像フォルダ作成
-		CreateDirectory((_time + "\\" + makeNameFolder(hrgn) + "-PCLHand").c_str(), NULL); // PCLHand画像フォルダ作成
-		CreateDirectory((_time + "\\" + makeNameFolder(hrgn) + "-PCLJoint").c_str(), NULL); // PCLJoint画像フォルダ作成
-		CreateDirectory((_time + "\\" + makeNameFolder(hrgn) + "-PCLCamera").c_str(), NULL); // PCLCamera画像フォルダ作成
-		CreateDirectory((_time + "\\" + makeNameFolder(hrgn) + "-Depth見る用").c_str(), NULL); // depth見る用画像フォルダ作成
+		CreateDirectory(dataFolderName.c_str(), NULL);
+		CreateDirectory((dataFolderName + "\\" + _time).c_str(), NULL); // 大本のフォルダ作成（名前が時間）
+		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-Color").c_str(), NULL); // color画像フォルダ作成
+		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-Depth").c_str(), NULL); // depth画像フォルダ作成
+		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-HandImage").c_str(), NULL); // HandImage画像フォルダ作成
+		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-HandPoint").c_str(), NULL); // HandPoint画像フォルダ作成
+		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-PCLHand").c_str(), NULL); // PCLHand画像フォルダ作成
+		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-PCLJoint").c_str(), NULL); // PCLJoint画像フォルダ作成
+		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-PCLCamera").c_str(), NULL); // PCLCamera画像フォルダ作成
+		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-PCLNear").c_str(), NULL); // PCLNear画像フォルダ作成
+		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-Depth見る用").c_str(), NULL); // depth見る用画像フォルダ作成
 		for (int i = 0; i < NUM; i++)
 		{
-			rsu[i].saveData(_time + "\\" + makeNameFolder(hrgn), "\\" + makeNameFail(hrgn, num) + "(" + std::to_string(i) + ")");
+			rsu[i].saveData(dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn), "\\" + makeNameFail(hrgn, num) + "(" + std::to_string(i) + ")");
 		}
 		num++;
 		break;

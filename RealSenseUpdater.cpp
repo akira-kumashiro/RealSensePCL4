@@ -4,7 +4,8 @@ RealSenseUpdater::RealSenseUpdater() :
 	//viewer(new pcl::visualization::PCLVisualizer("3D Viewer")),
 	hand_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
 	camera_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
-	hand_joint_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>)//PCL関連の変数の初期化
+	hand_joint_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
+	near_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>)//PCL関連の変数の初期化
 {
 
 	wColorIO(wColorIO::PRINT_INFO, L"RSU>");
@@ -176,7 +177,7 @@ int RealSenseUpdater::run(void)
 				/*if (pointCloudNum[CLOUD_HAND] != 0)
 					isCloudArrived[CLOUD_HAND] = true;*/
 
-				//viewer = app.rgbVis(point_cloud_ptr);
+					//viewer = app.rgbVis(point_cloud_ptr);
 
 				realsenseHandStatus(handData);
 			}
@@ -192,8 +193,10 @@ int RealSenseUpdater::run(void)
 
 		//viewer->updatePointCloud(camera_point_cloud_ptr, "cameracloud");
 
-		/*if (pointCloudNum[CLOUD_CAMERA] != 0)
-			isCloudArrived[CLOUD_CAMERA] = true;*/
+		if (pointCloudNum[CLOUD_CAMERA] != 0)
+			isCloudArrived[CLOUD_CAMERA] = true;
+		if (pointCloudNum[CLOUD_NEAR] != 0)
+			isCloudArrived[CLOUD_NEAR] = true;
 
 		rawDepthImagePrev = rawDepthImage.clone();
 	}
@@ -852,7 +855,7 @@ bool RealSenseUpdater::saveData(std::string directory, std::string name)
 	}
 	flip(rawDepthImage, tmp, 1); // 反転
 	imwrite(directory + "-Depth見る用" + name + ".tif", tmp * 0x60 / 0x100); // depth見る用画像保存
-	writeDepth(directory + "-Depth" + "\\" + makeNameFail(hrgn, num)); // depth画像保存
+	writeDepth(directory + "-Depth" + name); // depth画像保存
 	if (enableHandTracking)
 	{
 		if (isCloudArrived[CLOUD_HAND])
@@ -865,7 +868,9 @@ bool RealSenseUpdater::saveData(std::string directory, std::string name)
 	}
 	if (isCloudArrived[CLOUD_CAMERA])
 		pcl::io::savePCDFileBinary(directory + "-PCLCamera" + name + ".pcd", *camera_point_cloud_ptr);
-	tmp = readDepth(directory + "-Depth" + "\\" + makeNameFail(hrgn, num)) * 0x60 / 0x10000;
+	if (isCloudArrived[CLOUD_NEAR])
+		pcl::io::savePCDFileBinary(directory + "-PCLNear" + name + ".pcd", *near_point_cloud_ptr);
+	tmp = readDepth(directory + "-Depth" + name) * 0x60 / 0x10000;
 
 	cv::imshow("保存済み", tmp); // 保存したものの表示
 	return true;
@@ -942,7 +947,10 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool 
 	if (isHandDataArrived)
 		pointCloudNum[CLOUD_HAND] = 0;
 	else
+	{
 		pointCloudNum[CLOUD_CAMERA] = 0;
+		pointCloudNum[CLOUD_NEAR] = 0;
+	}
 
 	for (int y = 0; y < handImage.rows; y += (isHandDataArrived ? 1 : CLOUD_PITCH))
 	{
@@ -959,10 +967,10 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool 
 			float *rawDepthImagePrevPtr = rawDepthImagePrev.ptr<float>(y);
 			if (rawDepthImagePtr[x] != 0 && !(grayHandImagePtr[x] != 255 && isHandDataArrived))//&&!isOutliers(rawDepthImagePtr[x],rawDepthImagePrevPtr[x])
 			{
-				PXCPointF32 dColorPoint;
+				PXCPointF32 dColorPoint;//Unit:mm
 				PXCPoint3DF32 dDepthPoint;
 				PXCPoint3DF32 cDepthPoint;
-				pcl::PointXYZRGBA point;
+				pcl::PointXYZRGBA point;//Unit:m
 				bool isSkip = false;
 
 				dDepthPoint.x = x;
@@ -972,6 +980,7 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool 
 				projection->MapDepthToColor(1, &dDepthPoint, &dColorPoint);
 				projection->ProjectDepthToCamera(1, &dDepthPoint, &cDepthPoint);
 
+				//単位変換：mm→m
 				point.x = cDepthPoint.x / CLOUD_SCALE;
 				point.y = cDepthPoint.y / CLOUD_SCALE;
 				point.z = cDepthPoint.z / CLOUD_SCALE;
@@ -1027,7 +1036,14 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool 
 				}
 
 				if (!isSkip)
+				{
 					point_cloud_ptr->points.push_back(point);
+					if (point.z < 0.4)
+					{
+						near_point_cloud_ptr->points.push_back(point);
+						pointCloudNum[CLOUD_NEAR]++;
+					}
+				}
 				else
 					continue;
 				if (isHandDataArrived)

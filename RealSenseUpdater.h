@@ -68,6 +68,7 @@ public:
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr hand_point_cloud_ptr;
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr camera_point_cloud_ptr;
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr hand_joint_cloud_ptr;
+	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr near_point_cloud_ptr;
 
 	RealSenseUpdater();
 	~RealSenseUpdater();
@@ -122,6 +123,7 @@ private:
 		CLOUD_HAND,
 		CLOUD_CAMERA,
 		CLOUD_JOINT,
+		CLOUD_NEAR,
 		CLOUD_NUM,
 	};
 
