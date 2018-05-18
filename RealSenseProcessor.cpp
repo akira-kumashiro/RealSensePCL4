@@ -56,15 +56,17 @@ bool RealSenseProcessor::run(void)
 			wColorIO(wColorIO::PRINT_SUCCESS, L"Prosessing #%d device.\n", i);*/
 			rsu[i].setLaserPower(POWER);
 			keyboardCallBackSettings(cv::waitKey(TIME_STANDBY));
-			if (rsu[i].run() < RealSenseUpdater::RSU_NO_ERROR)
+			int callback = rsu[i].run();
+			if (callback < RealSenseUpdater::RSU_NO_ERROR)
 				return false;
+			else if (callback != RealSenseUpdater::RSU_NO_ERROR)
+				keyboardCallBackSettings(callback);
 			//printf_s("\n%d\n",rsu[i].run());
 			if (NUM > 1)
 				rsu[i].setLaserPower(0);
 			
 		}
 	}
-
 	return true;
 }
 
@@ -102,6 +104,18 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 		isUserInterrupt = true;
 
 		return false;
+	case '+':
+		for (int i = 0; i < NUM; i++)
+		{
+			rsu[i].changeThreshold(true);
+		}
+		break;
+	case '-':
+		for (int i = 0; i < NUM; i++)
+		{
+			rsu[i].changeThreshold(false);
+		}
+		break;
 	default:
 		/*if (key != -1)
 		wColorIO(wColorIO::PRINT_VALUE, L"%d\n", key);*/

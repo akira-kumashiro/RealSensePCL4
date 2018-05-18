@@ -78,6 +78,7 @@ public:
 	Status setLaserPower(int num);
 	bool saveData(std::string directory, std::string name);
 	void setEnableHandTracking(bool _enableHandTracking);
+	void changeThreshold(bool isIncr);
 
 	enum
 	{
@@ -109,11 +110,14 @@ private:
 	//bool keyboardCallBackSettings(int key);
 	bool isOutliers(float rawDepthElem, float rawDepthPrevElem);
 	int detC(cv::Mat src);
+	void calcDepthMark();
+
 	Status sts;
 	bool isContinue;
 	bool isUserInterrupt;
 	bool isExit = false;
 	int cameraNum;
+	double rangeThreshold = 0.4;
 	//bool enableHandTracking = false;
 
 	SenseManager *pp;
@@ -161,6 +165,7 @@ private:
 	cv::Mat rawDepthDiffImage;
 	cv::Mat rawDepthDiffImageFilterd;
 	cv::Mat rawDepthImageGauss;
+	cv::Mat depthmarked;
 
 	pxcI32 numberOfHands;
 

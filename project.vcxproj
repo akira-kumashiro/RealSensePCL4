@@ -321,6 +321,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="HandJointData.cpp" />
     <ClCompile Include="PointCloud2Mesh.cpp" />
     <ClCompile Include="RealSenseProcessor.cpp" />
+    <ClCompile Include="RealSenseProcessorPointer.cpp" />
     <ClCompile Include="RealSenseUpdater.cpp" />
     <ClCompile Include="wcolorIO.cpp" />
   </ItemGroup>
@@ -334,6 +335,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="HandJointData.h" />
     <ClInclude Include="PointCloud2Mesh.h" />
     <ClInclude Include="RealSenseProcessor.h" />
+    <ClInclude Include="RealSenseProcessorPointer.h" />
     <ClInclude Include="RealSenseUpdater.h" />
     <ClInclude Include="wcolorIO.h" />
   </ItemGroup>

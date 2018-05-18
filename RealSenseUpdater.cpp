@@ -45,6 +45,8 @@ RealSenseUpdater::RealSenseUpdater() :
 	rawDepthDiffImage = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC1);
 	rawDepthDiffImageFilterd = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC3);
 
+	depthmarked = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC3);
+
 	//	viewer->registerKeyboardCallback(&RealSenseUpdater::keyboardCallback, *this);
 
 	isContinue = false;
@@ -189,6 +191,8 @@ int RealSenseUpdater::run(void)
 			}
 		}
 
+		calcDepthMark();
+
 		camera_point_cloud_ptr = updatePointCloud(false);
 
 		//viewer->updatePointCloud(camera_point_cloud_ptr, "cameracloud");
@@ -198,7 +202,7 @@ int RealSenseUpdater::run(void)
 		if (pointCloudNum[CLOUD_NEAR] != 0)
 			isCloudArrived[CLOUD_NEAR] = true;
 
-		imshow("img(" + std::to_string(cameraNum) + ")", rawDepthImage * 0x60 / 0x100);
+		imshow("img(" + std::to_string(cameraNum) + ")", depthmarked);
 
 		rawDepthImagePrev = rawDepthImage.clone();
 	}
@@ -238,11 +242,20 @@ int RealSenseUpdater::run(void)
 
 	//keyboardCallBackSettings(cv::waitKey(1));
 
-
+	int c = cv::waitKey(1);
+	if (c == 27 || c == 'q' || c == 'Q')
+	{
+		isUserInterrupt = true;
+		return RSU_USER_INTERRUPTED;
+	}
+	else if (c != -1)
+	{
+		return c;
+	}
 
 	if (_kbhit())
 	{ // Break loop
-		int c = _getch() & 255;
+		c = _getch() & 255;
 		if (c == 27 || c == 'q' || c == 'Q')
 		{
 			isUserInterrupt = true;
@@ -252,6 +265,8 @@ int RealSenseUpdater::run(void)
 	}
 	//	}
 	isExit = true;
+
+	return RSU_NO_ERROR;
 	//}
 
 	/*cv::destroyAllWindows();
@@ -842,6 +857,38 @@ int RealSenseUpdater::detC(cv::Mat img)
 	return 0;
 }
 
+void RealSenseUpdater::calcDepthMark()
+{
+	//rawDepthImage.convertTo(depthmarked, CV_8UC3, 1.0);// 0x60 / 0x100
+	for (int y = 0; y < rawDepthImage.rows; y++)
+	{
+		float *rawDepthImagePtr = rawDepthImage.ptr<float>(y);
+		cv::Vec3b *depthmarkedPtr = depthmarked.ptr<cv::Vec3b>(y);
+
+		for (int x = 0; x < rawDepthImage.cols; x++)
+		{
+			if (rawDepthImagePtr[x] == 0.0)
+				depthmarkedPtr[x] = cv::Vec3b(0, 0, 0);
+			else if (rawDepthImagePtr[x] < rangeThreshold*CLOUD_SCALE)
+				depthmarkedPtr[x] = cv::Vec3b(0, 0, 255);
+			else
+				depthmarkedPtr[x] = cv::Vec3b(rawDepthImagePtr[x] * 0x60 / 0x100);
+			//else
+				//depthmarkedPtr[x] = cv::Vec3b(255, 255, 255);
+
+		}
+	}
+}
+
+void RealSenseUpdater::changeThreshold(bool isIncr)
+{
+	const double changeStep = 0.05;
+	if (isIncr)
+		rangeThreshold += changeStep;
+	else
+		rangeThreshold -= changeStep;
+}
+
 bool RealSenseUpdater::saveData(std::string directory, std::string name)
 {
 	cv::Mat tmp;
@@ -861,7 +908,7 @@ bool RealSenseUpdater::saveData(std::string directory, std::string name)
 	if (enableHandTracking)
 	{
 		//if (isCloudArrived[CLOUD_HAND])
-		if(pointCloudNum[CLOUD_HAND]!=0)
+		if (pointCloudNum[CLOUD_HAND] != 0)
 		{
 			pcl::io::savePCDFileBinary(directory + "-PCLHand" + name + ".pcd", *hand_point_cloud_ptr);
 			PointCloud2Mesh(hand_point_cloud_ptr, directory + "-PCLHand" + name + "s.obj", param, true);
@@ -1045,7 +1092,7 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool 
 				if (!isSkip)
 				{
 					point_cloud_ptr->points.push_back(point);
-					if (point.z < 0.4)
+					if (point.z < rangeThreshold)
 					{
 						near_point_cloud_ptr_temp->points.push_back(point);
 						pointCloudNum[CLOUD_NEAR]++;
