@@ -266,7 +266,9 @@ Data/
 # Others
 backup/
 CMakeFiles/generate*.*
+CMakeFiles/feature*.*
 CMakeFiles/*.txt
+CMakeFiles/*.check_cache
 CMakeFiles/*/
 CMakeCache.txt
 cmake_install.cmake
