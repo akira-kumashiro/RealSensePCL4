@@ -267,7 +267,7 @@ int RealSenseUpdater::run(void)
 		return c;
 	}
 
-	if (_kbhit())
+	/*if (_kbhit())
 	{ // Break loop
 		c = _getch() & 255;
 		if (c == 27 || c == 'q' || c == 'Q')
@@ -276,7 +276,7 @@ int RealSenseUpdater::run(void)
 			//c = 0;
 			return RSU_USER_INTERRUPTED;
 		} // ESC|q|Q for Exit
-	}
+	}*/
 	//	}
 	isExit = true;
 

@@ -55,7 +55,7 @@ bool RealSenseProcessor::run(void)
 			/*wColorIO(wColorIO::PRINT_INFO, L"RSP>");
 			wColorIO(wColorIO::PRINT_SUCCESS, L"Prosessing #%d device.\n", i);*/
 			rsu[i].setLaserPower(POWER);
-			keyboardCallBackSettings(cv::waitKey(TIME_STANDBY));
+			keyboardCallBackSettings(cv::waitKey(TIME_STANDBY/2));
 			int callback = rsu[i].run();
 			if (callback < RealSenseUpdater::RSU_NO_ERROR)
 				return false;
@@ -65,6 +65,17 @@ bool RealSenseProcessor::run(void)
 			//printf_s("\n%d\n",rsu[i].run());
 			if (NUM > 1)
 				rsu[i].setLaserPower(0);
+			keyboardCallBackSettings(cv::waitKey(TIME_STANDBY / 2));
+			if (_kbhit())
+			{ // Break loop
+				char c = _getch() & 255;
+				if (c == 27 || c == 'q' || c == 'Q')
+				{
+					isUserInterrupt = true;
+					//c = 0;
+					return true;
+				} // ESC|q|Q for Exit
+			}
 
 		}
 	}

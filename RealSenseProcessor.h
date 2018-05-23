@@ -60,7 +60,7 @@
 #define CONTOUR_SIZE_THRESHOLD 10*/
 #define NUM 3
 #define POWER 3
-#define TIME_STANDBY 200
+#define TIME_STANDBY 150
 
 using namespace Intel::RealSense;
 
