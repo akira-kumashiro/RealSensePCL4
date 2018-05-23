@@ -262,3 +262,9 @@ __pycache__/
 
 # Data save
 Data/
+
+# Others
+backup/
+CMakeFiles/generate*.*
+CMakeFiles/*.txt
+CMakeFiles/3.9.4/
