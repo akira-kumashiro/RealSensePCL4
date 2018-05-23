@@ -267,6 +267,6 @@ Data/
 backup/
 CMakeFiles/generate*.*
 CMakeFiles/*.txt
-CMakeFiles/3.9.4/
+CMakeFiles/*/
 CMakeCache.txt
 cmake_install.cmake
