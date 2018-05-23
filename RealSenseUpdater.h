@@ -16,6 +16,7 @@
 #include <opencv2\highgui\highgui.hpp>
 #include <iostream>
 #include <fstream>
+#include <chrono>
 
 #include <boost/format.hpp>
 #include <boost/shared_ptr.hpp>
@@ -58,6 +59,7 @@
 #define DIFF_EXCLUDE_THRESHOLD 20
 #define GAUSS_EXCLUDE_THRESHOLD 10
 #define CONTOUR_SIZE_THRESHOLD 10
+//#define __DEBUG_MODE__
 
 using namespace Intel::RealSense;
 
@@ -79,6 +81,7 @@ public:
 	bool saveData(std::string directory, std::string name);
 	void setEnableHandTracking(bool _enableHandTracking);
 	void changeThreshold(bool isIncr);
+	void showFPS(void);
 
 	enum
 	{
@@ -242,13 +245,13 @@ private:
 
 	// depth32f画像をファイルに書き込む
 	void writeDepth(const std::string name);
-	std::string makeNameFolder(int hrgn);
-	std::string makeNameFail(int hrgn, int num);
-	cv::Mat drawGuide(const cv::Mat& input, int num);
-	void printText(int hrgn, int num);
-	void shorGuideImage(const cv::Mat depth, int num);
+	//std::string makeNameFolder(int hrgn);
+	//std::string makeNameFail(int hrgn, int num);
+	//cv::Mat drawGuide(const cv::Mat& input, int num);
+	//void printText(int hrgn, int num);
+	//void shorGuideImage(const cv::Mat depth, int num);
 	cv::Mat RealSenseUpdater::readDepth(const std::string name);
-	std::string getTime(void);
+	//std::string getTime(void);
 
 	const int numMax = 9; // 保存する一文字の数
 	const int distMin = 375; // 手前の距離
@@ -269,5 +272,9 @@ private:
 	HandJointData handjointdata[2];
 
 	PointCloud2Mesh::gpParameters param;
+
+	double fps = 0;
+
+	std::chrono::system_clock::time_point nowTime,prevTime;
 };
 

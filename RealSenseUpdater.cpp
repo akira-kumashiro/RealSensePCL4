@@ -51,6 +51,7 @@ RealSenseUpdater::RealSenseUpdater() :
 
 	isContinue = false;
 	isUserInterrupt = false;
+	nowTime = std::chrono::system_clock::now();
 	//_time = getTime();
 }
 
@@ -100,6 +101,13 @@ int RealSenseUpdater::init(int num)
 
 int RealSenseUpdater::run(void)
 {
+	prevTime = nowTime;
+	nowTime = std::chrono::system_clock::now();
+
+	auto def = nowTime - prevTime;
+
+	fps = 1000 / std::chrono::duration<double,std::milli>(def).count();
+
 	//sts = ppInit();
 	//if (sts >= Status::PXC_STATUS_NO_ERROR)
 	//{
@@ -128,11 +136,13 @@ int RealSenseUpdater::run(void)
 		//break;
 		return RSU_DEVICE_REMOVED;
 	}
+#ifdef __DEBUG_MODE__
 	else
 	{
 		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 		wColorIO(wColorIO::PRINT_SUCCESS, L"Device checked.\n");
 	}
+#endif
 
 	if (sts < Status::STATUS_NO_ERROR)
 	{
@@ -147,20 +157,24 @@ int RealSenseUpdater::run(void)
 		{
 			return RSU_COLOR_IMAGE_UNAVAILABLE;
 		}
+#ifdef __DEBUG_MODE__
 		else
 		{
 			wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 			wColorIO(wColorIO::PRINT_SUCCESS, L"colorImage catched\n");
 		}
+#endif
 		if (sample->depth && !updateCameraImage(sample->depth, true))
 		{
 			return RSU_DEPTH_IMAGE_UNAVAILABLE;
 		}
+#ifdef __DEBUG_MODE__
 		else
 		{
 			wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 			wColorIO(wColorIO::PRINT_SUCCESS, L"depthImage catched\n");
 		}
+#endif
 
 		//detC(rawDepthDiffImage.clone());
 
@@ -235,10 +249,10 @@ int RealSenseUpdater::run(void)
 	}
 
 	// ウィンドウが消されても再表示する
-	cv::namedWindow("カメラ");
+	//cv::namedWindow("カメラ");
 	cv::namedWindow("保存済み");
 
-	shorGuideImage(rawDepthImage, num);
+	//shorGuideImage(rawDepthImage, num);
 
 	//keyboardCallBackSettings(cv::waitKey(1));
 
@@ -889,6 +903,15 @@ void RealSenseUpdater::changeThreshold(bool isIncr)
 		rangeThreshold -= changeStep;
 }
 
+void RealSenseUpdater::showFPS(void)
+{
+	wColorIO(wColorIO::PRINT_INFO, L"FPS(");
+	wColorIO(wColorIO::PRINT_VALUE, L"%d", cameraNum);
+	wColorIO(wColorIO::PRINT_INFO, L"):");
+	wColorIO(wColorIO::PRINT_VALUE, L"%lf\n", fps);
+
+}
+
 bool RealSenseUpdater::saveData(std::string directory, std::string name)
 {
 	cv::Mat tmp;
@@ -1264,7 +1287,7 @@ cv::Mat RealSenseUpdater::readDepth(const std::string name)
 
 	return img.clone();
 }
-
+/*
 std::string RealSenseUpdater::makeNameFolder(int hrgn)
 {
 	std::string nameFolder = "ｱ";
@@ -1290,6 +1313,7 @@ cv::Mat RealSenseUpdater::drawGuide(const cv::Mat& input, int num)
 	cv::circle(mat, senter + cv::Point(input.rows / 2 * 0.75 * cos(num * CV_PI / 4), input.rows / 2 * 0.75 * sin(num * CV_PI / 4)), input.rows / 2 * 0.25 - 2, cv::Scalar::all(0x00), -1);
 	return mat.clone();
 }
+
 
 // 文字出力
 void RealSenseUpdater::printText(int hrgn, int num)
@@ -1359,7 +1383,7 @@ std::string RealSenseUpdater::getTime(void)
 	//現在日時を取得する
 	time_t t = time(nullptr);
 
-	//形式を変換する    
+	//形式を変換する
 	const tm* lt = localtime(&t);
 
 	//sに独自フォーマットになるように連結していく
@@ -1378,7 +1402,7 @@ std::string RealSenseUpdater::getTime(void)
 
 	return s.str();
 }
-
+*/
 
 void RealSenseUpdater::realsenseHandStatus(PXCHandData *handAnalyzer)
 {

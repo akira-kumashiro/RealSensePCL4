@@ -61,10 +61,11 @@ bool RealSenseProcessor::run(void)
 				return false;
 			else if (callback != RealSenseUpdater::RSU_NO_ERROR)
 				keyboardCallBackSettings(callback);
+			rsu[i].showFPS();
 			//printf_s("\n%d\n",rsu[i].run());
 			if (NUM > 1)
 				rsu[i].setLaserPower(0);
-			
+
 		}
 	}
 	return true;
@@ -95,6 +96,7 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 		for (int i = 0; i < NUM; i++)
 		{
 			rsu[i].saveData(dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn), "\\" + makeNameFail(hrgn, num) + "(" + std::to_string(i) + ")");
+
 		}
 		num++;
 		break;

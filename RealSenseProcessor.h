@@ -58,9 +58,9 @@
 #define DIFF_EXCLUDE_THRESHOLD 20
 #define GAUSS_EXCLUDE_THRESHOLD 10
 #define CONTOUR_SIZE_THRESHOLD 10*/
-#define NUM 2
+#define NUM 3
 #define POWER 3
-#define TIME_STANDBY 100
+#define TIME_STANDBY 200
 
 using namespace Intel::RealSense;
 
