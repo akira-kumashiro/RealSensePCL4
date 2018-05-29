@@ -261,7 +261,7 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="RealSensePCL4\main.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="HandJointData.cpp" />
     <ClCompile Include="PointCloud2Mesh.cpp" />
     <ClCompile Include="RealSenseProcessor.cpp" />
