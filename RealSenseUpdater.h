@@ -59,7 +59,7 @@
 #define DIFF_EXCLUDE_THRESHOLD 20
 #define GAUSS_EXCLUDE_THRESHOLD 10
 #define CONTOUR_SIZE_THRESHOLD 10
-//#define __DEBUG_MODE__
+#define __DEBUG_MODE__
 
 using namespace Intel::RealSense;
 
@@ -76,12 +76,13 @@ public:
 	~RealSenseUpdater();
 	int init(int num);
 	int run(void);
-	bool setCamera(int numCam);
+	void setCamera(int numCam);
 	Status setLaserPower(int num);
 	bool saveData(std::string directory, std::string name);
 	void setEnableHandTracking(bool _enableHandTracking);
 	void changeThreshold(bool isIncr);
-	void showFPS(void);
+	void showFPS(std::chrono::system_clock::time_point time1, std::chrono::system_clock::time_point time2);
+	void showFPS();
 
 	enum
 	{
@@ -275,6 +276,6 @@ private:
 
 	double fps = 0;
 
-	std::chrono::system_clock::time_point nowTime,prevTime;
+	std::chrono::system_clock::time_point nowTime, prevTime;
 };
 

@@ -106,7 +106,7 @@ int RealSenseUpdater::run(void)
 
 	auto def = nowTime - prevTime;
 
-	fps = 1000 / std::chrono::duration<double,std::milli>(def).count();
+	fps = 1000 / std::chrono::duration<double, std::milli>(def).count();
 
 	//sts = ppInit();
 	//if (sts >= Status::PXC_STATUS_NO_ERROR)
@@ -125,7 +125,7 @@ int RealSenseUpdater::run(void)
 	//viewer->spinOnce();
 
 	//Waits until new frame is available and locks it for application processing
-	sts = pp->AcquireFrame(true);
+	sts = pp->AcquireFrame(false);//ここをtrueにするとたまにめっちゃ時間がかかる
 
 	if (!pp->IsConnected())
 	{
@@ -222,6 +222,10 @@ int RealSenseUpdater::run(void)
 	}
 
 	// Releases lock so pipeline can process next frame 
+#ifdef __DEBUG_MODE__
+	wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
+	wColorIO(wColorIO::PRINT_SUCCESS, L"Pipeline release in progress\n");
+#endif
 	pp->ReleaseFrame();
 	if (enableHandTracking)
 	{
@@ -247,7 +251,10 @@ int RealSenseUpdater::run(void)
 		projection->Release();
 		projection = nullptr;
 	}
-
+#ifdef __DEBUG_MODE__
+	wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
+	wColorIO(wColorIO::PRINT_SUCCESS, L"Pipeline release successful\n");
+#endif
 	// ウィンドウが消されても再表示する
 	//cv::namedWindow("カメラ");
 	cv::namedWindow("保存済み");
@@ -903,13 +910,20 @@ void RealSenseUpdater::changeThreshold(bool isIncr)
 		rangeThreshold -= changeStep;
 }
 
-void RealSenseUpdater::showFPS(void)
+void RealSenseUpdater::showFPS(std::chrono::system_clock::time_point time1, std::chrono::system_clock::time_point time2)
+{
+
+
+
+
+}
+
+void RealSenseUpdater::showFPS()
 {
 	wColorIO(wColorIO::PRINT_INFO, L"FPS(");
 	wColorIO(wColorIO::PRINT_VALUE, L"%d", cameraNum);
 	wColorIO(wColorIO::PRINT_INFO, L"):");
 	wColorIO(wColorIO::PRINT_VALUE, L"%lf\n", fps);
-
 }
 
 bool RealSenseUpdater::saveData(std::string directory, std::string name)
@@ -957,7 +971,7 @@ void RealSenseUpdater::setEnableHandTracking(bool _enableHandTracking)
 	enableHandTracking = _enableHandTracking;
 }
 
-bool RealSenseUpdater::setCamera(int numCam)
+void RealSenseUpdater::setCamera(int numCam)
 {
 	// ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓HandsViewerより↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
 	// 仕組みはよくわからない
