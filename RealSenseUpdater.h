@@ -33,6 +33,7 @@
 
 #include "wcolorIO.h"
 #include "HandJointData.h"
+#include "HandDetection.h"
 
 #include "PointCloud2Mesh.h"
 
@@ -59,7 +60,7 @@
 #define DIFF_EXCLUDE_THRESHOLD 20
 #define GAUSS_EXCLUDE_THRESHOLD 10
 #define CONTOUR_SIZE_THRESHOLD 10
-#define __DEBUG_MODE__
+//#define __DEBUG_MODE__
 
 using namespace Intel::RealSense;
 
@@ -67,10 +68,11 @@ class RealSenseUpdater
 {
 	//private:
 public:
-	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr hand_point_cloud_ptr;
-	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr camera_point_cloud_ptr;
-	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr hand_joint_cloud_ptr;
-	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr near_point_cloud_ptr;
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr hand_point_cloud_ptr;
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr camera_point_cloud_ptr;
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr hand_joint_cloud_ptr;
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr near_point_cloud_ptr;
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr tip_point_cloud_ptr;
 
 	RealSenseUpdater();
 	~RealSenseUpdater();
@@ -97,13 +99,13 @@ public:
 private:
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
 
-	Status ppInit(void);
+	Status ppInit(int num);
 	void showStatus(Status sts);
-	void initializeViewer(const std::string &id, pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &pointCloudPtr, double pointSize = 1.0);
+	void initializeViewer(const std::string &id, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloudPtr, double pointSize = 1.0);
 	bool updateCameraImage(PXCImage* cameraFrame, bool isDepthImage);
 	void realsenseHandStatus(PXCHandData *handAnalyzer);
 	bool updateHandImage(void);
-	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr updatePointCloud(bool isHandDataArrived);
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr updatePointCloud(bool isHandDataArrived);
 	void releaseHandImage(void);
 	//void updateViewerText(void);
 	//void keyboardCallback(const pcl::visualization::KeyboardEvent& event, void*);
@@ -115,6 +117,7 @@ private:
 	bool isOutliers(float rawDepthElem, float rawDepthPrevElem);
 	int detC(cv::Mat src);
 	void calcDepthMark();
+	void setTipCloud();
 
 	Status sts;
 	bool isContinue;

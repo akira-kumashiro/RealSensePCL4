@@ -2,10 +2,11 @@
 
 RealSenseUpdater::RealSenseUpdater() :
 	//viewer(new pcl::visualization::PCLVisualizer("3D Viewer")),
-	hand_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
-	camera_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
-	hand_joint_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>),
-	near_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>)//PCL関連の変数の初期化
+	hand_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>),
+	camera_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>),
+	hand_joint_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>),
+	near_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>),
+	tip_point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>)//PCL関連の変数の初期化
 {
 
 	wColorIO(wColorIO::PRINT_INFO, L"RSU>");
@@ -91,7 +92,7 @@ int RealSenseUpdater::init(int num)
 	cameraNum = num;
 
 	setCamera(num);
-	sts = ppInit();
+	sts = ppInit(num);
 	if (sts < Status::STATUS_NO_ERROR)
 	{
 		return RSU_ERROR_OCCURED;
@@ -206,6 +207,7 @@ int RealSenseUpdater::run(void)
 		}
 
 		calcDepthMark();
+		//setTipCloud();
 
 		camera_point_cloud_ptr = updatePointCloud(false);
 
@@ -217,6 +219,8 @@ int RealSenseUpdater::run(void)
 			isCloudArrived[CLOUD_NEAR] = true;
 
 		imshow("img(" + std::to_string(cameraNum) + ")", depthmarked);
+
+		//imshow("img(" + std::to_string(cameraNum) + ") color", colorImage);
 
 		rawDepthImagePrev = rawDepthImage.clone();
 	}
@@ -467,7 +471,7 @@ int RealSenseUpdater::run(void)
 	return true;
 }*/
 
-Status RealSenseUpdater::ppInit(void)
+Status RealSenseUpdater::ppInit(int num)
 {
 	//isContinue = false;
 	isExit = false;
@@ -560,6 +564,9 @@ Status RealSenseUpdater::ppInit(void)
 			wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 			wColorIO(wColorIO::PRINT_INFO, L"MirrorMode has been enabled.\n");
 		}
+
+		//projectionを作る前にsetCameraしないとprojectionがおかしくなる
+		setCamera(num);
 
 		projection = device->CreateProjection();
 
@@ -704,7 +711,7 @@ bool RealSenseUpdater::updateHandImage(void)
 	PXCImage::ImageData data;
 	pointCloudNum[CLOUD_JOINT] = 0;
 
-	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr hand_joint_cloud_ptr_tmp(new pcl::PointCloud<pcl::PointXYZRGBA>);
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr hand_joint_cloud_ptr_tmp(new pcl::PointCloud<pcl::PointXYZRGB>);
 	if (handData != nullptr&&handData)
 	{
 		numberOfHands = handData->QueryNumberOfHands();
@@ -775,7 +782,7 @@ bool RealSenseUpdater::updateHandImage(void)
 				}
 				cv::circle(handPoint, cv::Point(jointData.positionImage.x, jointData.positionImage.y), 5, cv::Scalar(128 * (1 - i), 128 * i, 0, 0));
 
-				pcl::PointXYZRGBA point;
+				pcl::PointXYZRGB point;
 
 				point.x = jointData.positionWorld.x;
 				point.y = jointData.positionWorld.y;
@@ -899,6 +906,73 @@ void RealSenseUpdater::calcDepthMark()
 
 		}
 	}
+
+	cv::Mat dst_img, work_img;
+	dst_img = depthmarked.clone();
+	cv::cvtColor(depthmarked, work_img, CV_BGR2GRAY);
+
+	// Hough変換のための前処理（画像の平滑化を行なわないと誤検出が発生しやすい）
+	cv::GaussianBlur(work_img, work_img, cv::Size(11, 11), 2, 2);
+
+	// Hough変換による円の検出と検出した円の描画
+	std::vector<cv::Vec3f> circles;
+	cv::HoughCircles(work_img, circles, CV_HOUGH_GRADIENT, 1, 25, 100, 12, 10, 25);
+
+	std::vector<cv::Vec3f>::iterator it = circles.begin();
+	for (; it != circles.end(); ++it) {
+		cv::Point center(cv::saturate_cast<int>((*it)[0]), cv::saturate_cast<int>((*it)[1]));
+		if (work_img.at<uchar>(center) == 0)
+			continue;
+		int radius = cv::saturate_cast<int>((*it)[2]);
+		cv::circle(depthmarked, center, radius, cv::Scalar(255, 255, 255), 2);
+	}
+}
+
+void RealSenseUpdater::setTipCloud()
+{
+	HandDetection det(150.0, 600.0);
+	std::vector<cv::Point> tipPos;
+	cv::Mat colorMapped = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC3);
+	for (int y = 0; y < rawDepthImage.rows; y++)
+	{
+		float *rawDepthImagePtr = rawDepthImage.ptr<float>(y);
+		cv::Vec3b *colorMappedPtr = colorMapped.ptr<cv::Vec3b>(y);
+		for (int x = 0; x < rawDepthImage.cols; x++)
+		{
+			PXCPointF32 dColorPoint;//Unit:mm
+			PXCPoint3DF32 dDepthPoint;
+			PXCPoint3DF32 cDepthPoint;
+
+			dDepthPoint.x = x;
+			dDepthPoint.y = y;
+			dDepthPoint.z = rawDepthImagePtr[x];
+
+			projection->MapDepthToColor(1, &dDepthPoint, &dColorPoint);
+			projection->ProjectDepthToCamera(1, &dDepthPoint, &cDepthPoint);
+			
+			if (dColorPoint.x != -1.0 && dColorPoint.y != -1.0)
+			{
+				cv::Vec4b *colorImagePtr = colorImage.ptr<cv::Vec4b>((int)dColorPoint.y);
+
+				cv::Vec4b colorPx = colorImagePtr[(int)dColorPoint.x];
+				
+				for (int i = 0; i < 3; i++)
+				{
+					colorMappedPtr[x][i] = colorPx[i];
+				}
+			}
+			else
+			{
+				for (int i = 0; i < 3; i++)
+				{
+					colorMappedPtr[x][i] = 0;
+				}
+			}
+		}
+	}
+
+	tipPos=det.getTipData(rawDepthImage, colorMapped);
+
 }
 
 void RealSenseUpdater::changeThreshold(bool isIncr)
@@ -1031,10 +1105,10 @@ Status RealSenseUpdater::setLaserPower(int num)
 	return pp->QueryCaptureManager()->QueryDevice()->SetIVCAMLaserPower(num);
 }
 
-pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool isHandDataArrived)
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr RealSenseUpdater::updatePointCloud(bool isHandDataArrived)
 {
-	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGBA>);
-	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr near_point_cloud_ptr_temp(new pcl::PointCloud<pcl::PointXYZRGBA>);
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr near_point_cloud_ptr_temp(new pcl::PointCloud<pcl::PointXYZRGB>);
 	if (isHandDataArrived)
 		pointCloudNum[CLOUD_HAND] = 0;
 	else
@@ -1061,7 +1135,7 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr RealSenseUpdater::updatePointCloud(bool 
 				PXCPointF32 dColorPoint;//Unit:mm
 				PXCPoint3DF32 dDepthPoint;
 				PXCPoint3DF32 cDepthPoint;
-				pcl::PointXYZRGBA point;//Unit:m
+				pcl::PointXYZRGB point;//Unit:m
 				bool isSkip = false;
 
 				dDepthPoint.x = x;
@@ -1577,10 +1651,10 @@ void RealSenseUpdater::showStatus(Status sts)
 	wColorIO(wColorIO::PRINT_ERROR, L"(code:%d)\n", sts);
 }
 
-void RealSenseUpdater::initializeViewer(const std::string & id, pcl::PointCloud<pcl::PointXYZRGBA>::Ptr & pointCloudPtr, double pointSize)
+void RealSenseUpdater::initializeViewer(const std::string & id, pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pointCloudPtr, double pointSize)
 {
-	pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> hand_rgb(pointCloudPtr);
-	viewer->addPointCloud<pcl::PointXYZRGBA>(pointCloudPtr, hand_rgb, id);
+	pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> hand_rgb(pointCloudPtr);
+	viewer->addPointCloud<pcl::PointXYZRGB>(pointCloudPtr, hand_rgb, id);
 	//viewer->addPointCloud(pointCloudPtr, id);
 	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, pointSize, id);
 }

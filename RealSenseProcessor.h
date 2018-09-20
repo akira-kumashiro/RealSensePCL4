@@ -35,6 +35,7 @@
 
 #include "PointCloud2Mesh.h"
 #include "RealSenseUpdater.h"
+#include "PCL_Regist.h"
 
 /*#ifdef _DEBUG
 //Debugモードの場合
@@ -60,7 +61,7 @@
 #define CONTOUR_SIZE_THRESHOLD 10*/
 #define NUM 2
 #define POWER 3
-#define TIME_STANDBY 150
+#define TIME_STANDBY 100
 
 
 using namespace Intel::RealSense;
@@ -73,11 +74,15 @@ public:
 	bool run(void);
 	std::vector<RealSenseUpdater> rsu;
 private:
-	//boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
+	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
+	std::vector<Eigen::Matrix4f> transformMat;
+	std::vector<PCL_Regist> regist;
 
 	void updateViewerText(void);
 	void keyboardCallback(const pcl::visualization::KeyboardEvent& event, void*);
 	bool keyboardCallBackSettings(int key);
+	void initializeViewer(const std::string &id, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloudPtr, double pointSize);
+
 	bool isContinue;
 	bool isUserInterrupt;
 	bool isExit = false;
@@ -92,6 +97,7 @@ private:
 	//クラス内変数
 	wchar_t directoryName[20];
 	char nallowDirectoryName[20];
+	std::vector<std::string> cloud_id;
 	std::string dataFileName;
 	std::ofstream dataFile;
 	std::string makeNameFolder(int hrgn);

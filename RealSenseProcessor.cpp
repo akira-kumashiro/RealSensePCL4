@@ -1,28 +1,39 @@
 #include "RealSenseProcessor.h"
 
 RealSenseProcessor::RealSenseProcessor() :
-	//viewer(new pcl::visualization::PCLVisualizer("3D Viewer")),
-	rsu(std::vector<RealSenseUpdater>(NUM))
+	viewer(new pcl::visualization::PCLVisualizer("3D Viewer")),
+	rsu(std::vector<RealSenseUpdater>(NUM)),
+	regist(std::vector<PCL_Regist>(NUM, PCL_Regist(1e-2, 0.2, 1000, 10))),
+	transformMat(std::vector<Eigen::Matrix4f>(NUM, Eigen::Matrix4f::Identity()))
 {
 	wColorIO(wColorIO::PRINT_INFO, L"RSP>");
 	wColorIO(wColorIO::PRINT_INFO, L"Start\n");
 
-	//viewer->registerKeyboardCallback(&RealSenseProcessor::keyboardCallback, *this);
+	viewer->registerKeyboardCallback(&RealSenseProcessor::keyboardCallback, *this);
 
 	isContinue = false;
 	isUserInterrupt = false;
 	_time = getTime();
+
+	viewer->setBackgroundColor(0, 0, 0);
+	for (auto i = 0; i < NUM; i++)
+	{
+		cloud_id.push_back("cloud(" + std::to_string(i) + ")");
+		initializeViewer(cloud_id[i], rsu[i].camera_point_cloud_ptr, 1.0);
+	}
+	viewer->addCoordinateSystem(0.01);
+	viewer->initCameraParameters();
 }
 
 
 RealSenseProcessor::~RealSenseProcessor()
 {
-	for (int i = 0; i < NUM; i++)
+	/*for (int i = 0; i < NUM; i++)
 	{
 
-	}
+	}*/
 
-	//viewer->close();
+	viewer->close();
 
 	cv::destroyAllWindows();
 
@@ -55,17 +66,25 @@ bool RealSenseProcessor::run(void)
 			/*wColorIO(wColorIO::PRINT_INFO, L"RSP>");
 			wColorIO(wColorIO::PRINT_SUCCESS, L"Prosessing #%d device.\n", i);*/
 			rsu[i].setLaserPower(POWER);
-			keyboardCallBackSettings(cv::waitKey(TIME_STANDBY/2));
+			keyboardCallBackSettings(cv::waitKey(TIME_STANDBY / 2));
 			int callback = rsu[i].run();
 			if (callback < RealSenseUpdater::RSU_NO_ERROR)
 				return false;
 			else if (callback != RealSenseUpdater::RSU_NO_ERROR)
 				keyboardCallBackSettings(callback);
 			rsu[i].showFPS();
+
 			//printf_s("\n%d\n",rsu[i].run());
 			if (NUM > 1)
 				rsu[i].setLaserPower(0);
+
+			//if (i != 0)
+				//transformMat[i] = transformMat[i] * regist[i].getTransformMatrix(rsu[0].camera_point_cloud_ptr, rsu[i].camera_point_cloud_ptr);
+
+			viewer->updatePointCloud(regist[i].transformPointcloud(rsu[i].camera_point_cloud_ptr), cloud_id[i]);
+			viewer->spinOnce();
 			keyboardCallBackSettings(cv::waitKey(TIME_STANDBY / 2));
+
 			if (_kbhit())
 			{ // Break loop
 				char c = _getch() & 255;
@@ -129,6 +148,12 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 			rsu[i].changeThreshold(false);
 		}
 		break;
+	case 't':
+		for (int i = 1; i < NUM; i++)
+		{
+			transformMat[i] = transformMat[i] * regist[i].getTransformMatrix(rsu[0].camera_point_cloud_ptr, rsu[i].camera_point_cloud_ptr,transformMat[i]);
+		}
+		break;
 	default:
 		/*if (key != -1)
 		wColorIO(wColorIO::PRINT_VALUE, L"%d\n", key);*/
@@ -160,6 +185,14 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 	return true;
 }
 
+void RealSenseProcessor::initializeViewer(const std::string & id, pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pointCloudPtr, double pointSize)
+{
+	//pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> hand_rgb(pointCloudPtr);
+	//viewer->addPointCloud<pcl::PointXYZRGBA>(pointCloudPtr, hand_rgb, id);
+	viewer->addPointCloud(pointCloudPtr, id);
+	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, pointSize, id);
+}
+
 void RealSenseProcessor::updateViewerText(void)
 {
 	std::vector<boost::format> entries;
@@ -171,10 +204,10 @@ void RealSenseProcessor::updateViewerText(void)
 
 	for (size_t i = 0; i < entries.size(); ++i)
 	{
-		//		std::string name = boost::str(name_fmt % i);
-		//		std::string entry = boost::str(entries[i]);
-		//		if (!viewer->updateText(entry, dx, dy + i * (fs + 2), fs, 1.0, 1.0, 1.0, name))
-		//			viewer->addText(entry, dx, dy + i * (fs + 2), fs, 1.0, 1.0, 1.0, name);
+		std::string name = boost::str(name_fmt % i);
+		std::string entry = boost::str(entries[i]);
+		if (!viewer->updateText(entry, dx, dy + i * (fs + 2), fs, 1.0, 1.0, 1.0, name))
+			viewer->addText(entry, dx, dy + i * (fs + 2), fs, 1.0, 1.0, 1.0, name);
 	}
 }
 
