@@ -20,6 +20,7 @@
     <ClCompile Include="RealSenseProcessorPointer.cpp" />
     <ClCompile Include="PCL_Regist.cpp" />
     <ClCompile Include="HandDetection.cpp" />
+    <ClCompile Include="HandDetect.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">
@@ -46,5 +47,6 @@
     <ClInclude Include="RealSenseProcessorPointer.h" />
     <ClInclude Include="PCL_Regist.h" />
     <ClInclude Include="HandDetection.h" />
+    <ClInclude Include="HandDetect.h" />
   </ItemGroup>
 </Project>

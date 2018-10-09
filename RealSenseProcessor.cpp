@@ -3,7 +3,8 @@
 RealSenseProcessor::RealSenseProcessor() :
 	viewer(new pcl::visualization::PCLVisualizer("3D Viewer")),
 	rsu(std::vector<RealSenseUpdater>(NUM)),
-	regist(std::vector<PCL_Regist>(NUM, PCL_Regist(1e-2, 0.2, 1000, 10))),
+	regist_near(std::vector<PCL_Regist>(NUM, PCL_Regist(1e-2, 0.02, 1000, 2))),
+	regist_tip(std::vector<PCL_Regist>(NUM, PCL_Regist(1e-2, 0.2, 1000, 100))),
 	transformMat(std::vector<Eigen::Matrix4f>(NUM, Eigen::Matrix4f::Identity()))
 {
 	wColorIO(wColorIO::PRINT_INFO, L"RSP>");
@@ -19,7 +20,9 @@ RealSenseProcessor::RealSenseProcessor() :
 	for (auto i = 0; i < NUM; i++)
 	{
 		cloud_id.push_back("cloud(" + std::to_string(i) + ")");
+		tip_cloud_id.push_back("tip_cloud(" + std::to_string(i) + ")");
 		initializeViewer(cloud_id[i], rsu[i].camera_point_cloud_ptr, 1.0);
+		initializeViewer(tip_cloud_id[i], rsu[i].tip_point_cloud_ptr, 20.0);
 	}
 	viewer->addCoordinateSystem(0.01);
 	viewer->initCameraParameters();
@@ -81,7 +84,8 @@ bool RealSenseProcessor::run(void)
 			//if (i != 0)
 				//transformMat[i] = transformMat[i] * regist[i].getTransformMatrix(rsu[0].camera_point_cloud_ptr, rsu[i].camera_point_cloud_ptr);
 
-			viewer->updatePointCloud(regist[i].transformPointcloud(rsu[i].camera_point_cloud_ptr), cloud_id[i]);
+			viewer->updatePointCloud(regist_tip[i].transformPointcloud(rsu[i].camera_point_cloud_ptr), cloud_id[i]);
+			viewer->updatePointCloud(regist_tip[i].transformPointcloud(rsu[i].tip_point_cloud_ptr), tip_cloud_id[i]);
 			viewer->spinOnce();
 			keyboardCallBackSettings(cv::waitKey(TIME_STANDBY / 2));
 
@@ -123,6 +127,7 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-PCLCamera").c_str(), NULL); // PCLCamera画像フォルダ作成
 		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-PCLNear").c_str(), NULL); // PCLNear画像フォルダ作成
 		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-Depth見る用").c_str(), NULL); // depth見る用画像フォルダ作成
+		CreateDirectory((dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn) + "-PCLTip").c_str(), NULL); // depth見る用画像フォルダ作成
 		for (int i = 0; i < NUM; i++)
 		{
 			rsu[i].saveData(dataFolderName + "\\" + _time + "\\" + makeNameFolder(hrgn), "\\" + makeNameFail(hrgn, num) + "(" + std::to_string(i) + ")");
@@ -151,7 +156,18 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 	case 't':
 		for (int i = 1; i < NUM; i++)
 		{
-			transformMat[i] = transformMat[i] * regist[i].getTransformMatrix(rsu[0].camera_point_cloud_ptr, rsu[i].camera_point_cloud_ptr,transformMat[i]);
+			if (rsu[0].tip_point_cloud_ptr->size() >= 5 && rsu[i].tip_point_cloud_ptr->size() >= 5)
+			{
+				transformMat[i] = transformMat[i] * regist_tip[i].getTransformMatrix(rsu[0].tip_point_cloud_ptr, rsu[i].tip_point_cloud_ptr,Eigen::Matrix4f::Identity());//, transformMat[i]
+				transformMat[i] = transformMat[i] * regist_near[i].getTransformMatrix(rsu[0].near_point_cloud_ptr, rsu[i].near_point_cloud_ptr, transformMat[i]);
+			}
+			else
+			{
+				if (rsu[0].tip_point_cloud_ptr->size() >= 5)
+					wColorIO(wColorIO::PRINT_ERROR, L"The number of points #0 is too small!\n");
+				if (rsu[i].tip_point_cloud_ptr->size() >= 5)
+					wColorIO(wColorIO::PRINT_ERROR, L"The number of points #%d is too small!\n", i);
+			}
 		}
 		break;
 	default:

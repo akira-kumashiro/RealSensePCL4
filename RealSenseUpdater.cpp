@@ -37,14 +37,16 @@ RealSenseUpdater::RealSenseUpdater() :
 		wprintf_s(L"Unable to create the SenseManager\n");
 	}
 
-	cv::namedWindow(windowName[0], CV_WINDOW_AUTOSIZE);
+	//cv::namedWindow(windowName[0], CV_WINDOW_AUTOSIZE);
 	rawDepthImage = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_32FC1);
+#ifdef __ENABLE_HAND_TRACKING__
 	handImage1 = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC1);
 	handImage2 = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC1);
 	handImage = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC4);
 	handPoint = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC4);
-	rawDepthDiffImage = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC1);
-	rawDepthDiffImageFilterd = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC3);
+#endif
+	/*rawDepthDiffImage = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC1);
+	rawDepthDiffImageFilterd = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC3);*/
 
 	depthmarked = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC3);
 
@@ -65,6 +67,7 @@ RealSenseUpdater::~RealSenseUpdater()
 
 	cv::destroyAllWindows();
 
+#ifdef __ENABLE_HAND_TRACKING__
 	if (enableHandTracking)
 	{
 		if (handAnalyzer == nullptr)
@@ -78,6 +81,7 @@ RealSenseUpdater::~RealSenseUpdater()
 			handData = nullptr;
 		}
 	}
+#endif
 
 	/*if (projection == nullptr)
 	{
@@ -119,10 +123,10 @@ int RealSenseUpdater::run(void)
 		return RSU_ERROR_OCCURED;
 	}
 
-	for (int i = 0; i < CLOUD_NUM; i++)
+	/*for (int i = 0; i < CLOUD_NUM; i++)
 	{
 		isCloudArrived[i] = false;
-	}
+	}*/
 	//viewer->spinOnce();
 
 	//Waits until new frame is available and locks it for application processing
@@ -176,10 +180,16 @@ int RealSenseUpdater::run(void)
 			wColorIO(wColorIO::PRINT_SUCCESS, L"depthImage catched\n");
 		}
 #endif
-
+		/*if (sample->color&&sample->depth)
+		{
+			PXCImage* projectionImage = projection->CreateColorImageMappedToDepth(sample->depth, sample->color);
+			if (projectionImage != nullptr && !acqireImage(projectionImage, colorMappedToDepth, PXCImage::PixelFormat::PIXEL_FORMAT_RGB24))
+				return RSU_COLOR_IMAGE_UNAVAILABLE + RSU_DEPTH_IMAGE_UNAVAILABLE;
+			projectionImage->Release();
+		}*/
 		//detC(rawDepthDiffImage.clone());
 
-
+#ifdef __ENABLE_HAND_TRACKING__
 		if (enableHandTracking)
 		{
 			if (handData)
@@ -205,18 +215,18 @@ int RealSenseUpdater::run(void)
 				releaseHandImage();
 			}
 		}
-
+#endif
 		calcDepthMark();
-		//setTipCloud();
+		setTipCloud();
 
 		camera_point_cloud_ptr = updatePointCloud(false);
 
 		//viewer->updatePointCloud(camera_point_cloud_ptr, "cameracloud");
 
-		if (pointCloudNum[CLOUD_CAMERA] != 0)
+		/*if (pointCloudNum[CLOUD_CAMERA] != 0)
 			isCloudArrived[CLOUD_CAMERA] = true;
 		if (pointCloudNum[CLOUD_NEAR] != 0)
-			isCloudArrived[CLOUD_NEAR] = true;
+			isCloudArrived[CLOUD_NEAR] = true;*/
 
 		imshow("img(" + std::to_string(cameraNum) + ")", depthmarked);
 
@@ -231,6 +241,7 @@ int RealSenseUpdater::run(void)
 	wColorIO(wColorIO::PRINT_SUCCESS, L"Pipeline release in progress\n");
 #endif
 	pp->ReleaseFrame();
+#ifdef __ENABLE_HAND_TRACKING__
 	if (enableHandTracking)
 	{
 		if (handAnalyzer == nullptr)
@@ -244,6 +255,7 @@ int RealSenseUpdater::run(void)
 			handData = nullptr;
 		}
 	}
+#endif
 	/*else
 	{
 		pp->Release();
@@ -331,7 +343,7 @@ int RealSenseUpdater::run(void)
 	}
 	//return(isContinue);
 	return true;*/
-}
+	}
 
 /*bool RealSenseUpdater::keyboardCallBackSettings(int key)
 {
@@ -519,6 +531,7 @@ Status RealSenseUpdater::ppInit(int num)
 		wColorIO(wColorIO::PRINT_VALUE, L"%d\n", DEPTH_FPS);
 	}
 
+#ifdef __ENABLE_HAND_TRACKING__
 	if (enableHandTracking)
 	{
 		sts = pp->EnableHand();
@@ -549,6 +562,7 @@ Status RealSenseUpdater::ppInit(int num)
 			wColorIO(wColorIO::PRINT_SUCCESS, L"Succeeded to pair the hand module with I/O\n");
 		}
 	}
+#endif
 	// ÉpÉCÉvÉâÉCÉìÇèâä˙âªÇ∑ÇÈ
 	sts = pp->Init();
 
@@ -570,6 +584,7 @@ Status RealSenseUpdater::ppInit(int num)
 
 		projection = device->CreateProjection();
 
+#ifdef __ENABLE_HAND_TRACKING__
 		if (enableHandTracking)
 		{
 			device->QueryDeviceInfo(&dinfo);
@@ -598,6 +613,7 @@ Status RealSenseUpdater::ppInit(int num)
 			config->ApplyChanges();
 			config->Update();
 		}
+#endif
 	}
 	else
 	{
@@ -706,6 +722,7 @@ bool RealSenseUpdater::updateCameraImage(PXCImage* cameraFrame, bool isDepthImag
 	return true;
 }
 
+#ifdef __ENABLE_HAND_TRACKING__
 bool RealSenseUpdater::updateHandImage(void)
 {
 	PXCImage::ImageData data;
@@ -857,6 +874,7 @@ bool RealSenseUpdater::updateHandImage(void)
 		return(false);
 	}
 }
+#endif
 
 bool RealSenseUpdater::isOutliers(float rawDepthElem, float rawDepthPrevElem)
 {
@@ -870,7 +888,7 @@ bool RealSenseUpdater::isOutliers(float rawDepthElem, float rawDepthPrevElem)
 	}
 }
 
-int RealSenseUpdater::detC(cv::Mat img)
+/*int RealSenseUpdater::detC(cv::Mat img)
 {
 	cv::Mat src;
 	cv::Mat element = cv::getStructuringElement(morph_elem, cv::Size(2 * morph_size + 1, 2 * morph_size + 1), cv::Point(morph_size, morph_size));
@@ -883,7 +901,7 @@ int RealSenseUpdater::detC(cv::Mat img)
 
 	rawDepthDiffImageFilterd = dst.clone();
 	return 0;
-}
+}*/
 
 void RealSenseUpdater::calcDepthMark()
 {
@@ -897,7 +915,7 @@ void RealSenseUpdater::calcDepthMark()
 		{
 			if (rawDepthImagePtr[x] == 0.0)
 				depthmarkedPtr[x] = cv::Vec3b(0, 0, 0);
-			else if (rawDepthImagePtr[x] < rangeThreshold*CLOUD_SCALE)
+			else if (rawDepthImagePtr[x] < farThreshold*CLOUD_SCALE&&rawDepthImagePtr[x]>nearThreshold*CLOUD_SCALE)
 				depthmarkedPtr[x] = cv::Vec3b(0, 0, 255);
 			else
 				depthmarkedPtr[x] = cv::Vec3b(rawDepthImagePtr[x] * 0x60 / 0x100);
@@ -930,8 +948,8 @@ void RealSenseUpdater::calcDepthMark()
 
 void RealSenseUpdater::setTipCloud()
 {
-	HandDetection det(150.0, 600.0);
-	std::vector<cv::Point> tipPos;
+	HandDetect det(nearThreshold*CLOUD_SCALE, farThreshold*CLOUD_SCALE);
+	//std::vector<cv::Point> tipPos;
 	cv::Mat colorMapped = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC3);
 	for (int y = 0; y < rawDepthImage.rows; y++)
 	{
@@ -949,39 +967,81 @@ void RealSenseUpdater::setTipCloud()
 
 			projection->MapDepthToColor(1, &dDepthPoint, &dColorPoint);
 			projection->ProjectDepthToCamera(1, &dDepthPoint, &cDepthPoint);
-			
-			if (dColorPoint.x != -1.0 && dColorPoint.y != -1.0)
-			{
-				cv::Vec4b *colorImagePtr = colorImage.ptr<cv::Vec4b>((int)dColorPoint.y);
 
-				cv::Vec4b colorPx = colorImagePtr[(int)dColorPoint.x];
-				
-				for (int i = 0; i < 3; i++)
-				{
-					colorMappedPtr[x][i] = colorPx[i];
-				}
-			}
-			else
+
+			for (auto i = 0; i < 3; i++)
 			{
-				for (int i = 0; i < 3; i++)
+				int p = y / 10 + x / 10;
+				int c = p % 2 == 1 ? 204 : 255;
+
+				cv::Vec4b colorPx = cv::Vec4b(c, c, c, 0);
+				if (dColorPoint.x != -1.0 && dColorPoint.y != -1.0)
 				{
-					colorMappedPtr[x][i] = 0;
+					cv::Vec4b *colorImagePtr = colorImage.ptr<cv::Vec4b>((int)dColorPoint.y);
+					colorPx = colorImagePtr[(int)dColorPoint.x];
 				}
+				colorMappedPtr[x][i] = colorPx[i];
 			}
 		}
 	}
 
-	tipPos=det.getTipData(rawDepthImage, colorMapped);
 
+
+	wColorIO(wColorIO::PRINT_INFO, L"Mat created.\n");
+
+	std::vector<cv::Point> tipPos = det.getTipData(rawDepthImage.clone(), colorMapped.clone());
+
+	wColorIO(wColorIO::PRINT_SUCCESS, L"Tipdata catched\n");
+
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr tip_cloud_temp(new pcl::PointCloud<pcl::PointXYZRGB>);
+	//cv::imshow("colorMapped(" + std::to_string(cameraNum) + ")", det.colorMarked);
+	if (tipPos[0] == cv::Point(-1, -1))
+		return;
+
+	for (int i = 0; i < tipPos.size(); i++)
+	{
+		float *rawDepthImagePtr = rawDepthImage.ptr<float>(tipPos[i].y);
+
+		if (rawDepthImagePtr[tipPos[i].x] != 0)// && !(grayHandImagePtr[x] != 255 && isHandDataArrived)
+		{
+			PXCPoint3DF32 dDepthPoint;
+			PXCPoint3DF32 cDepthPoint;
+			pcl::PointXYZRGB point;//Unit:m
+
+			dDepthPoint.x = tipPos[i].x;
+			dDepthPoint.y = tipPos[i].y;
+			dDepthPoint.z = rawDepthImagePtr[tipPos[i].x];
+
+			projection->ProjectDepthToCamera(1, &dDepthPoint, &cDepthPoint);
+
+			//íPà ïœä∑ÅFmmÅ®m
+			point.x = cDepthPoint.x / CLOUD_SCALE;
+			point.y = cDepthPoint.y / CLOUD_SCALE;
+			point.z = cDepthPoint.z / CLOUD_SCALE;
+			point.r = 255;
+			point.g = 0;
+			point.b = 0;
+
+			tip_cloud_temp->points.push_back(point);
+		}
+		/*cv::circle(colorMapped, tipPos[i], 5, CV_RGB(0, 255, 0), 2, 8, 0);
+		cv::line(colorMapped, *(defectArray[i].start), *(defectArray[i].depth_point), CV_RGB(255, 255, 0), 1, CV_AA, 0);
+		cvCircle(src, *(defectArray[i].depth_point), 5, CV_RGB(0, 0, 255), 2, 8, 0);
+		cvLine(src, *(defectArray[i].depth_point), *(defectArray[i].end), CV_RGB(0, 255, 255), 1, CV_AA, 0);
+		cvDrawContours(src, defects, CV_RGB(0, 0, 0), CV_RGB(255, 0, 0), -1, CV_FILLED, 8);*/
+
+	}
+
+	tip_point_cloud_ptr = tip_cloud_temp;
 }
 
 void RealSenseUpdater::changeThreshold(bool isIncr)
 {
 	const double changeStep = 0.05;
 	if (isIncr)
-		rangeThreshold += changeStep;
+		farThreshold += changeStep;
 	else
-		rangeThreshold -= changeStep;
+		farThreshold -= changeStep;
 }
 
 void RealSenseUpdater::showFPS(std::chrono::system_clock::time_point time1, std::chrono::system_clock::time_point time2)
@@ -1006,16 +1066,10 @@ bool RealSenseUpdater::saveData(std::string directory, std::string name)
 
 	flip(colorImage, tmp, 1); // îΩì]
 	cv::imwrite(directory + "-Color" + name + ".tif", tmp); // colorâÊëúï€ë∂
-	if (enableHandTracking)
-	{
-		flip(handImage, tmp, 1); // îΩì]
-		cv::imwrite(directory + "-HandImage" + name + ".tif", tmp); // handImageâÊëúï€ë∂
-		flip(handPoint, tmp, 1); // îΩì]
-		cv::imwrite(directory + "-HandPoint" + name + ".tif", tmp); // handPointâÊëúï€ë∂
-	}
 	flip(rawDepthImage, tmp, 1); // îΩì]
 	imwrite(directory + "-Depthå©ÇÈóp" + name + ".tif", tmp * 0x60 / 0x100); // depthå©ÇÈópâÊëúï€ë∂
 	writeDepth(directory + "-Depth" + name); // depthâÊëúï€ë∂
+#ifdef __ENABLE_HAND_TRACKING__
 	if (enableHandTracking)
 	{
 		//if (isCloudArrived[CLOUD_HAND])
@@ -1027,13 +1081,22 @@ bool RealSenseUpdater::saveData(std::string directory, std::string name)
 		//if (isCloudArrived[CLOUD_JOINT])
 		if (pointCloudNum[CLOUD_JOINT] != 0)
 			pcl::io::savePCDFileBinary(directory + "-PCLJoint" + name + ".pcd", *hand_joint_cloud_ptr);
+		flip(handImage, tmp, 1); // îΩì]
+		cv::imwrite(directory + "-HandImage" + name + ".tif", tmp); // handImageâÊëúï€ë∂
+		flip(handPoint, tmp, 1); // îΩì]
+		cv::imwrite(directory + "-HandPoint" + name + ".tif", tmp); // handPointâÊëúï€ë∂
 	}
+#endif
 	//if (isCloudArrived[CLOUD_CAMERA])
-	if (pointCloudNum[CLOUD_CAMERA] != 0)
+	if (camera_point_cloud_ptr->size() != 0)
 		pcl::io::savePCDFileBinary(directory + "-PCLCamera" + name + ".pcd", *camera_point_cloud_ptr);
 	//if (isCloudArrived[CLOUD_NEAR])
-	if (pointCloudNum[CLOUD_NEAR] != 0)
+	if (near_point_cloud_ptr->size() != 0)
 		pcl::io::savePCDFileBinary(directory + "-PCLNear" + name + ".pcd", *near_point_cloud_ptr);
+	if (tip_point_cloud_ptr->size() != 0)
+		pcl::io::savePCDFileBinary(directory + "-PCLTip" + name + ".pcd", *tip_point_cloud_ptr);
+
+
 	tmp = readDepth(directory + "-Depth" + name) * 0x60 / 0x10000;
 
 	cv::imshow("ï€ë∂çœÇ›", tmp); // ï€ë∂ÇµÇΩÇ‡ÇÃÇÃï\é¶
@@ -1109,21 +1172,22 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RealSenseUpdater::updatePointCloud(bool i
 {
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr near_point_cloud_ptr_temp(new pcl::PointCloud<pcl::PointXYZRGB>);
-	if (isHandDataArrived)
+
+	/*if (isHandDataArrived)
 		pointCloudNum[CLOUD_HAND] = 0;
 	else
 	{
 		pointCloudNum[CLOUD_CAMERA] = 0;
 		pointCloudNum[CLOUD_NEAR] = 0;
-	}
+	}*/
 
 	for (int y = 0; y < rawDepthImage.rows; y += (isHandDataArrived ? 1 : CLOUD_PITCH))
 	{
 		//unsigned char *grayHandImagePtr = grayHandImage.ptr<uchar>(y);
 		float *rawDepthImagePtr = rawDepthImage.ptr<float>(y);
 		//cv::Vec4b *handImagePtr = handImage.ptr<cv::Vec4b>(y);
-		unsigned char *rawDepthDiffImagePtr = rawDepthDiffImage.ptr<uchar>(y);
-		unsigned char *rawDepthDiffImageFilterdPtr = rawDepthDiffImageFilterd.ptr<uchar>(y);
+		//unsigned char *rawDepthDiffImagePtr = rawDepthDiffImage.ptr<uchar>(y);
+		//unsigned char *rawDepthDiffImageFilterdPtr = rawDepthDiffImageFilterd.ptr<uchar>(y);
 
 		for (int x = 0; x < rawDepthImage.cols; x += (isHandDataArrived ? 1 : CLOUD_PITCH))
 		{
@@ -1191,30 +1255,30 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RealSenseUpdater::updatePointCloud(bool i
 				point.g = 0;
 				point.b = 0;
 				}*/
-				if (rawDepthDiffImageFilterdPtr[x] == 255)
+				/*if (rawDepthDiffImageFilterdPtr[x] == 255)
 				{
 					point.r = 255;
 				}
 				if (rawDepthDiffImagePtr[x] == 128)
 				{
 					point.b = 255;
-				}
+				}*/
 
 				if (!isSkip)
 				{
 					point_cloud_ptr->points.push_back(point);
-					if (point.z < rangeThreshold)
+					if (point.z < farThreshold&&point.z>nearThreshold)
 					{
 						near_point_cloud_ptr_temp->points.push_back(point);
-						pointCloudNum[CLOUD_NEAR]++;
+						//pointCloudNum[CLOUD_NEAR]++;
 					}
 				}
 				else
 					continue;
-				if (isHandDataArrived)
+				/*if (isHandDataArrived)
 					pointCloudNum[CLOUD_HAND]++;
 				else
-					pointCloudNum[CLOUD_CAMERA]++;
+					pointCloudNum[CLOUD_CAMERA]++;*/
 			}
 		}
 	}
@@ -1224,11 +1288,13 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RealSenseUpdater::updatePointCloud(bool i
 	return(point_cloud_ptr);
 }
 
+#ifdef __ENABLE_HAND_TRACKING__
 void RealSenseUpdater::releaseHandImage(void)
 {
 	handImage = cv::Mat::zeros(cv::Size(DEPTH_WIDTH, DEPTH_HEIGHT), CV_8UC4);
 	cv::imshow(windowName[0], handImage);
 }
+#endif
 
 /*void RealSenseUpdater::keyboardCallback(const pcl::visualization::KeyboardEvent& event, void*)
 {

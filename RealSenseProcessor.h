@@ -76,7 +76,7 @@ public:
 private:
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
 	std::vector<Eigen::Matrix4f> transformMat;
-	std::vector<PCL_Regist> regist;
+	std::vector<PCL_Regist> regist_tip,regist_near;
 
 	void updateViewerText(void);
 	void keyboardCallback(const pcl::visualization::KeyboardEvent& event, void*);
@@ -98,6 +98,7 @@ private:
 	wchar_t directoryName[20];
 	char nallowDirectoryName[20];
 	std::vector<std::string> cloud_id;
+	std::vector<std::string> tip_cloud_id;
 	std::string dataFileName;
 	std::ofstream dataFile;
 	std::string makeNameFolder(int hrgn);

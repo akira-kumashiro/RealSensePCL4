@@ -1,36 +1,48 @@
-#include "HandDetection.h"
+#include "HandDetect.h"
 
 
 
-HandDetection::HandDetection(double nearThreshold, double farThreshold)
+HandDetect::HandDetect(double nearThreshold, double farThreshold)
 {
 	_nearThreshold = nearThreshold;
 	_farThreshold = farThreshold;
 }
 
-std::vector<cv::Point> HandDetection::getTipData(cv::Mat depth, cv::Mat color)
+std::vector<cv::Point> HandDetect::getTipData(cv::Mat depth, cv::Mat color)
 {
 	std::vector<cv::Point> tipPositions;
 
-	depthBinaryImage = cv::Mat::zeros(cv::Size(depth.rows, depth.cols), CV_8U);
+	CvSize sz = cvSize(color.cols, color.rows);
+
+	depthBinaryImage = cv::Mat::zeros(cv::Size(depth.cols, depth.rows), CV_8U);
 	depthImage = depth;
 	colorImage = color;
 
-	CvSize sz = cvSize(depth.cols, depth.rows);
 
-	IplImage* src = cvCreateImage(sz, 8, 3);
-	IplImage* gray = cvCreateImage(sz, 8, 1);
+	depthBinaryImage = getBinaryImage();
 
-	//IplImage *src, *gray;
-	*src = color;
-	*gray = getBinaryImage();
+	//cv::imshow("binary", depthBinaryImage);
 
-	//cvCvtColor(src, gray, CV_BGR2GRAY);
-	cvSmooth(gray, gray, CV_BLUR, (12, 12), 0);
-	//cvNamedWindow("Blur", 1); cvShowImage("Blur", gray);   // blur-not-clear
-	cvThreshold(gray, gray, 0, 255, (CV_THRESH_BINARY_INV + CV_THRESH_OTSU));
 
-	//cvNamedWindow("Threshold", 1); cvShowImage("Threshold", gray);  // black-white
+	IplImage* src = cvCreateImage(sz, IPL_DEPTH_8U, 3);
+	//IplImage* gray = cvCreateImage(cvSize(270, 270), 8, 1);
+	IplImage* gray = cvCreateImage(sz, IPL_DEPTH_8U, 1);
+
+	//*src = image;//このコードだったらメモリが増えるから下のコードで
+	for (int y = 0; y < color.rows; y++)
+	{
+		cv::Vec3b *colorPtr = color.ptr<cv::Vec3b>(y);
+		uchar *depthPtr = depthBinaryImage.ptr<uchar>(y);
+		for (int x = 0; x < color.cols; x++)
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				src->imageData[src->widthStep * y + x * 3 + i] = colorPtr[x][i];
+			}
+			gray->imageData[gray->widthStep*y + x] = depthPtr[x];
+		}
+	}
+
 	CvMemStorage* storage = cvCreateMemStorage();
 	CvSeq* first_contour = NULL;
 	CvSeq* maxitem = NULL;
@@ -38,6 +50,7 @@ std::vector<cv::Point> HandDetection::getTipData(cv::Mat depth, cv::Mat color)
 	double area, max_area = 0.0;
 	CvSeq* ptr = 0;
 	//int maxn=0,n=0;
+
 	if (cn > 0)
 	{
 		for (ptr = first_contour; ptr != NULL; ptr = ptr->h_next)
@@ -101,43 +114,63 @@ std::vector<cv::Point> HandDetection::getTipData(cv::Mat depth, cv::Mat color)
 						con = con + 1;
 						// printf(" defect depth for defect %d %f \n",i,defectArray[i].depth);
 						cvLine(src, *(defectArray[i].start), *(defectArray[i].depth_point), CV_RGB(255, 255, 0), 1, CV_AA, 0);
-						cvCircle(src, *(defectArray[i].depth_point), 5, CV_RGB(0, 0, 255), 2, 8, 0);//指と指の間
-						cvCircle(src, *(defectArray[i].start), 5, CV_RGB(0, 255, 0), 2, 8, 0);//指の先端
+						cvCircle(src, *(defectArray[i].depth_point), 5, CV_RGB(0, 0, 255), 2, 8, 0);
+						cvCircle(src, *(defectArray[i].start), 5, CV_RGB(0, 255, 0), 2, 8, 0);
 						cvLine(src, *(defectArray[i].depth_point), *(defectArray[i].end), CV_RGB(0, 255, 255), 1, CV_AA, 0);
 						cvDrawContours(src, defects, CV_RGB(0, 0, 0), CV_RGB(255, 0, 0), -1, CV_FILLED, 8);
-
 						cv::Point temp = cv::Point((*(defectArray[i].start)).x, (*(defectArray[i].start)).y);
 
-						tipPositions.push_back(temp);
+						tipPositions.push_back(cv::Point((*(defectArray[i].start)).x, (*(defectArray[i].start)).y));
+
+						tipPositions.push_back(cv::Point((*(defectArray[i].depth_point)).x, (*(defectArray[i].depth_point)).y));
+						if (i > 0 && (*(defectArray[i - 1].start)).x != (*(defectArray[i].end)).x&& (*(defectArray[i - 1].start)).y != (*(defectArray[i].end)).y)
+						{
+							tipPositions.push_back(cv::Point((*(defectArray[i].end)).x, (*(defectArray[i].end)).y));
+						}
 					}
 				}
+
 				//cvNamedWindow("contour", 1); cvShowImage("contour", src);
-				// Free memory.
+
 				free(defectArray);
 			}
 			cvReleaseMemStorage(&storage1);
 			cvReleaseMemStorage(&storage2);
 		}
 	}
+
+	for (auto i = 0; i < tipPositions.size(); i++)
+	{
+		printf("tipPositions[%d]=(%d,%d)\n", i, tipPositions[i].x, tipPositions[i].y);
+	}
+
+
 	cvReleaseMemStorage(&storage);
 	//cvNamedWindow("threshold", 1); cvShowImage("threshold", src);
-
+	colorMarked = src;
+	printf_s("print\n");
+	cvReleaseImage(&src);
+	cvReleaseImage(&gray);
+	if (tipPositions.empty())
+	{
+		tipPositions.push_back(cv::Point(-1, -1));
+	}
 	return tipPositions;
 }
 
 
-HandDetection::~HandDetection()
+HandDetect::~HandDetect()
 {
 }
 
-cv::Mat HandDetection::getBinaryImage(void)
+cv::Mat HandDetect::getBinaryImage(void)
 {
-	cv::Mat img = cv::Mat::zeros(cv::Size(depthImage.rows, depthImage.cols), CV_8U);
-	for (int y = 0; y < depthImage.cols; y++)
+	cv::Mat img = cv::Mat::zeros(cv::Size(depthImage.cols, depthImage.rows), CV_8U);
+	for (int y = 0; y < depthImage.rows; y++)
 	{
 		float *depthImagePtr = depthImage.ptr<float>(y);
 		unsigned char *imgPtr = img.ptr<uchar>(y);
-		for (int x = 0; x < depthImage.rows; x++)
+		for (int x = 0; x < depthImage.cols; x++)
 		{
 			if (depthImagePtr[x] > _nearThreshold && depthImagePtr[x] < _farThreshold)
 			{

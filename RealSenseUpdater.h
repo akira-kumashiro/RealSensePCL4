@@ -34,6 +34,7 @@
 #include "wcolorIO.h"
 #include "HandJointData.h"
 #include "HandDetection.h"
+#include "HandDetect.h"
 
 #include "PointCloud2Mesh.h"
 
@@ -61,6 +62,7 @@
 #define GAUSS_EXCLUDE_THRESHOLD 10
 #define CONTOUR_SIZE_THRESHOLD 10
 //#define __DEBUG_MODE__
+//#define __ENABLE_HAND_TRACKING__
 
 using namespace Intel::RealSense;
 
@@ -124,7 +126,8 @@ private:
 	bool isUserInterrupt;
 	bool isExit = false;
 	int cameraNum;
-	double rangeThreshold = 0.4;
+	double nearThreshold = 0.15;
+	double farThreshold = 0.6;
 	//bool enableHandTracking = false;
 
 	SenseManager *pp;
@@ -148,7 +151,7 @@ private:
 
 
 
-	bool isCloudArrived[CLOUD_NUM];
+	//bool isCloudArrived[CLOUD_NUM];
 
 	static const int COLOR_WIDTH = 1920;
 	static const int COLOR_HEIGHT = 1080;
@@ -164,20 +167,23 @@ private:
 	//cv::Mat depthImage;
 	cv::Mat rawDepthImage;
 	cv::Mat rawDepthImagePrev;
+#ifdef __ENABLE_HAND_TRACKING__
 	cv::Mat handImage1;
 	cv::Mat handImage2;
 	cv::Mat handImage;
 	cv::Mat grayHandImage;
 	cv::Mat handPoint;
-	cv::Mat rawDepthDiffImage;
+#endif
+	/*cv::Mat rawDepthDiffImage;
 	cv::Mat rawDepthDiffImageFilterd;
-	cv::Mat rawDepthImageGauss;
+	cv::Mat rawDepthImageGauss;*/
 	cv::Mat depthmarked;
+	cv::Mat colorMappedToDepth;
 
 	pxcI32 numberOfHands;
 
-	std::vector<unsigned short> depthBuffer;
-	const std::string windowName[1] = { "handimage" };
+	//std::vector<unsigned short> depthBuffer;
+	//const std::string windowName[1] = { "handimage" };
 
 	/*const int COLOR_WIDTH = 640;
 	const int COLOR_HEIGHT = 480;
@@ -188,10 +194,10 @@ private:
 	const int DEPTH_FPS = 30;*/
 
 	//ÉNÉâÉXì‡ïœêî
-	int colorImageNum = 0;
+	/*int colorImageNum = 0;
 	int depthImageNum = 0;
 	int imageNum = 0;
-	int dataNum = 0;
+	int dataNum = 0;*/
 	//float bilateralS = 5;
 	//float bilateralR = 0.05;
 	//bool enableBilateral = false;
@@ -205,7 +211,7 @@ private:
 	//double sigmaG = 1.0;
 	//int gSize = 1;
 
-	int pointCloudNum[CLOUD_NUM];
+	//int pointCloudNum[CLOUD_NUM];
 
 	PXCHandConfiguration* config = NULL;
 	PXCHandData* handData = NULL;

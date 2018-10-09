@@ -25,10 +25,10 @@ std::vector<cv::Point> HandDetection::getTipData(cv::Mat depth, cv::Mat color)
 	*src = color;
 	*gray = getBinaryImage();
 
-	//cvCvtColor(src, gray, CV_BGR2GRAY);
+	/*cvCvtColor(src, gray, CV_BGR2GRAY);
 	cvSmooth(gray, gray, CV_BLUR, (12, 12), 0);
-	//cvNamedWindow("Blur", 1); cvShowImage("Blur", gray);   // blur-not-clear
-	cvThreshold(gray, gray, 0, 255, (CV_THRESH_BINARY_INV + CV_THRESH_OTSU));
+	cvNamedWindow("Blur", 1); cvShowImage("Blur", gray);   // blur-not-clear
+	cvThreshold(gray, gray, 0, 255, (CV_THRESH_BINARY_INV + CV_THRESH_OTSU));*/
 
 	//cvNamedWindow("Threshold", 1); cvShowImage("Threshold", gray);  // black-white
 	CvMemStorage* storage = cvCreateMemStorage();
