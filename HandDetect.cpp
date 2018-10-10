@@ -148,7 +148,7 @@ std::vector<cv::Point> HandDetect::getTipData(cv::Mat depth, cv::Mat color)
 	cvReleaseMemStorage(&storage);
 	//cvNamedWindow("threshold", 1); cvShowImage("threshold", src);
 	colorMarked = src;
-	printf_s("print\n");
+	//printf_s("print\n");
 	cvReleaseImage(&src);
 	cvReleaseImage(&gray);
 	if (tipPositions.empty())

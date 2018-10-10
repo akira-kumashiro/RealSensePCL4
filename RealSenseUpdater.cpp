@@ -88,6 +88,8 @@ RealSenseUpdater::~RealSenseUpdater()
 		projection->Release();
 		projection = nullptr;
 	}*/
+
+	wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
 	wColorIO(wColorIO::PRINT_SUCCESS, L"Exiting\n");
 }
 
@@ -97,6 +99,7 @@ int RealSenseUpdater::init(int num)
 
 	setCamera(num);
 	sts = ppInit(num);
+	showStatus(sts);
 	if (sts < Status::STATUS_NO_ERROR)
 	{
 		return RSU_ERROR_OCCURED;
@@ -158,7 +161,7 @@ int RealSenseUpdater::run(void)
 	const PXCCapture::Sample *sample = pp->QuerySample();
 	if (sample != nullptr)
 	{
-		if (sample->color && !updateCameraImage(sample->color, false))
+		if (sample->color && !acqireImage(sample->color, colorImage, PXCImage::PIXEL_FORMAT_RGB32))//updateCameraImage(sample->color, false)
 		{
 			return RSU_COLOR_IMAGE_UNAVAILABLE;
 		}
@@ -169,7 +172,7 @@ int RealSenseUpdater::run(void)
 			wColorIO(wColorIO::PRINT_SUCCESS, L"colorImage catched\n");
 		}
 #endif
-		if (sample->depth && !updateCameraImage(sample->depth, true))
+		if (sample->depth && !acqireImage(sample->depth, rawDepthImage, PXCImage::PIXEL_FORMAT_DEPTH_F32))//updateCameraImage(sample->depth, true)
 		{
 			return RSU_DEPTH_IMAGE_UNAVAILABLE;
 		}
@@ -180,12 +183,15 @@ int RealSenseUpdater::run(void)
 			wColorIO(wColorIO::PRINT_SUCCESS, L"depthImage catched\n");
 		}
 #endif
+		PXCImage* projectionImage = projection->CreateColorImageMappedToDepth(sample->depth, sample->color);
+		if (projectionImage == nullptr)
+			return RSU_COLOR_IMAGE_UNAVAILABLE + RSU_DEPTH_IMAGE_UNAVAILABLE;
+		else if (acqireImage(projectionImage, colorMappedToDepth, PXCImage::PixelFormat::PIXEL_FORMAT_RGB24))
+			projectionImage->Release();
+
 		/*if (sample->color&&sample->depth)
 		{
-			PXCImage* projectionImage = projection->CreateColorImageMappedToDepth(sample->depth, sample->color);
-			if (projectionImage != nullptr && !acqireImage(projectionImage, colorMappedToDepth, PXCImage::PixelFormat::PIXEL_FORMAT_RGB24))
-				return RSU_COLOR_IMAGE_UNAVAILABLE + RSU_DEPTH_IMAGE_UNAVAILABLE;
-			projectionImage->Release();
+
 		}*/
 		//detC(rawDepthDiffImage.clone());
 
@@ -343,7 +349,7 @@ int RealSenseUpdater::run(void)
 	}
 	//return(isContinue);
 	return true;*/
-	}
+}
 
 /*bool RealSenseUpdater::keyboardCallBackSettings(int key)
 {
@@ -644,6 +650,13 @@ Status RealSenseUpdater::ppInit(int num)
 bool RealSenseUpdater::acqireImage(PXCImage* cameraFrame, cv::Mat &mat, PXCImage::PixelFormat pixelFormat)
 {
 	PXCImage::ImageData data;
+
+	if (cameraFrame == nullptr)
+	{
+		wColorIO(wColorIO::PRINT_INFO, L"RSU#%d>", cameraNum);
+		wColorIO(wColorIO::PRINT_ERROR, L"cameraFrame throws nullptr.\n");
+		return false;
+	}
 
 	sts = cameraFrame->AcquireAccess(PXCImage::Access::ACCESS_READ, pixelFormat, &data);
 
@@ -987,11 +1000,11 @@ void RealSenseUpdater::setTipCloud()
 
 
 
-	wColorIO(wColorIO::PRINT_INFO, L"Mat created.\n");
+	//wColorIO(wColorIO::PRINT_INFO, L"Mat created.\n");
 
 	std::vector<cv::Point> tipPos = det.getTipData(rawDepthImage.clone(), colorMapped.clone());
 
-	wColorIO(wColorIO::PRINT_SUCCESS, L"Tipdata catched\n");
+	//wColorIO(wColorIO::PRINT_SUCCESS, L"Tipdata catched\n");
 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr tip_cloud_temp(new pcl::PointCloud<pcl::PointXYZRGB>);
 	//cv::imshow("colorMapped(" + std::to_string(cameraNum) + ")", det.colorMarked);
@@ -1200,7 +1213,7 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RealSenseUpdater::updatePointCloud(bool i
 				PXCPoint3DF32 dDepthPoint;
 				PXCPoint3DF32 cDepthPoint;
 				pcl::PointXYZRGB point;//Unit:m
-				bool isSkip = false;
+				//bool isSkip = false;
 
 				dDepthPoint.x = x;
 				dDepthPoint.y = y;
@@ -1220,10 +1233,10 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RealSenseUpdater::updatePointCloud(bool i
 
 					cv::Vec4b colorPx = colorImagePtr[(int)dColorPoint.x];
 
-					if (colorPx[0] == 255 && colorPx[1] == 255 && colorPx[2] == 255)
+					/*if (colorPx[0] == 255 && colorPx[1] == 255 && colorPx[2] == 255)
 					{
 						isSkip = true;
-					}
+					}*/
 
 					//if (isHandDataArrived)
 					//	handImagePtr[x] = colorPx;
@@ -1264,15 +1277,15 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RealSenseUpdater::updatePointCloud(bool i
 					point.b = 255;
 				}*/
 
-				if (!isSkip)
+				/*if (!isSkip)
+				{*/
+				point_cloud_ptr->points.push_back(point);
+				if (point.z < farThreshold&&point.z>nearThreshold)
 				{
-					point_cloud_ptr->points.push_back(point);
-					if (point.z < farThreshold&&point.z>nearThreshold)
-					{
-						near_point_cloud_ptr_temp->points.push_back(point);
-						//pointCloudNum[CLOUD_NEAR]++;
-					}
+					near_point_cloud_ptr_temp->points.push_back(point);
+					//pointCloudNum[CLOUD_NEAR]++;
 				}
+				//}
 				else
 					continue;
 				/*if (isHandDataArrived)
@@ -1714,7 +1727,7 @@ void RealSenseUpdater::showStatus(Status sts)
 	default:
 		break;
 	}
-	wColorIO(wColorIO::PRINT_ERROR, L"(code:%d)\n", sts);
+	wColorIO(sts==Intel::RealSense::NSStatus::PXC_STATUS_NO_ERROR?wColorIO::PRINT_SUCCESS:wColorIO::PRINT_ERROR, L"(code:%d)\n", sts);
 }
 
 void RealSenseUpdater::initializeViewer(const std::string & id, pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pointCloudPtr, double pointSize)

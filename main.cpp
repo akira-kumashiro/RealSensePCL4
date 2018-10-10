@@ -11,7 +11,7 @@ int wmain(int argc, WCHAR* argv[])
 
 		while (1)
 		{
-			if (rsp->run() == false)
+			if (rsp->run())
 			{
 				delete rsp;
 				return false;
@@ -19,6 +19,16 @@ int wmain(int argc, WCHAR* argv[])
 			else
 			{
 				delete rsp;
+				
+				while (true)
+				{
+					int c = _getch();
+					if (c == ' ')
+					{
+						break;
+					}
+				}
+
 				rsp = new RealSenseProcessor();
 			}
 		}

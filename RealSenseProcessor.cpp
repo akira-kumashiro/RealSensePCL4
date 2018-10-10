@@ -55,7 +55,7 @@ bool RealSenseProcessor::run(void)
 
 		if (rsu[i].init(i) < RealSenseUpdater::RSU_NO_ERROR)
 		{
-			return false;
+			return setReInit();
 		}
 	}
 
@@ -72,9 +72,13 @@ bool RealSenseProcessor::run(void)
 			keyboardCallBackSettings(cv::waitKey(TIME_STANDBY / 2));
 			int callback = rsu[i].run();
 			if (callback < RealSenseUpdater::RSU_NO_ERROR)
-				return false;
+			{
+				return setReInit();
+			}
 			else if (callback != RealSenseUpdater::RSU_NO_ERROR)
+			{
 				keyboardCallBackSettings(callback);
+			}
 			rsu[i].showFPS();
 
 			//printf_s("\n%d\n",rsu[i].run());
@@ -158,7 +162,7 @@ bool RealSenseProcessor::keyboardCallBackSettings(int key)
 		{
 			if (rsu[0].tip_point_cloud_ptr->size() >= 5 && rsu[i].tip_point_cloud_ptr->size() >= 5)
 			{
-				transformMat[i] = transformMat[i] * regist_tip[i].getTransformMatrix(rsu[0].tip_point_cloud_ptr, rsu[i].tip_point_cloud_ptr,Eigen::Matrix4f::Identity());//, transformMat[i]
+				transformMat[i] = transformMat[i] * regist_tip[i].getTransformMatrix(rsu[0].tip_point_cloud_ptr, rsu[i].tip_point_cloud_ptr, Eigen::Matrix4f::Identity());//, transformMat[i]
 				transformMat[i] = transformMat[i] * regist_near[i].getTransformMatrix(rsu[0].near_point_cloud_ptr, rsu[i].near_point_cloud_ptr, transformMat[i]);
 			}
 			else
@@ -207,6 +211,25 @@ void RealSenseProcessor::initializeViewer(const std::string & id, pcl::PointClou
 	//viewer->addPointCloud<pcl::PointXYZRGBA>(pointCloudPtr, hand_rgb, id);
 	viewer->addPointCloud(pointCloudPtr, id);
 	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, pointSize, id);
+}
+
+bool RealSenseProcessor::setReInit(void)
+{
+	wprintf_s(L"Stream has been stoped due to error(s)\n");
+	wprintf_s(L"Do you want to re-initilizing?\nY/N\n");
+
+	while (true)
+	{
+		int c = _getch();
+		if (c == 'Y' || c == 'y')
+		{
+			return false;
+		}
+		else if (c == 'N' || c == 'n' || c == 27)
+		{
+			return true;
+		}
+	}
 }
 
 void RealSenseProcessor::updateViewerText(void)

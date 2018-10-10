@@ -82,6 +82,8 @@ private:
 	void keyboardCallback(const pcl::visualization::KeyboardEvent& event, void*);
 	bool keyboardCallBackSettings(int key);
 	void initializeViewer(const std::string &id, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloudPtr, double pointSize);
+	bool setReInit(void);
+
 
 	bool isContinue;
 	bool isUserInterrupt;
