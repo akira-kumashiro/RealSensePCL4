@@ -116,5 +116,7 @@ private:
 	int hrgn = 0; // •¶ŽšŠi”[—p
 
 	std::string _time;
+
+	Eigen::Matrix4f zRev;
 };
 

@@ -16,6 +16,12 @@ RealSenseProcessor::RealSenseProcessor() :
 	isUserInterrupt = false;
 	_time = getTime();
 
+	zRev << -1.0, 0.0, 0.0, 0.0,
+		0.0, -1.0, 0.0, 0.0,
+		0.0, 0.0, 1.0, 0.0,
+		0.0, 0.0, 0.0, 1.0;
+
+
 	viewer->setBackgroundColor(0, 0, 0);
 	for (auto i = 0; i < NUM; i++)
 	{

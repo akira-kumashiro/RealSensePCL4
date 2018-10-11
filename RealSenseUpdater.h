@@ -61,7 +61,7 @@
 #define DIFF_EXCLUDE_THRESHOLD 20
 #define GAUSS_EXCLUDE_THRESHOLD 10
 #define CONTOUR_SIZE_THRESHOLD 10
-//#define __DEBUG_MODE__
+#define __DEBUG_MODE__
 //#define __ENABLE_HAND_TRACKING__
 
 using namespace Intel::RealSense;
